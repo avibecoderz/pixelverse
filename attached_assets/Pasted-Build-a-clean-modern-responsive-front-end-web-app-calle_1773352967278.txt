@@ -1,0 +1,203 @@
+Build a clean, modern, responsive front-end web app called PixelStudio using React + Vite and Tailwind CSS.
+
+Project type:
+- Front-end only
+- No backend yet
+- Use dummy/sample data
+- Focus on UI, layout, and user flow
+- Make it look like a real SaaS dashboard for a photography management system
+
+Brand:
+- Name: PixelStudio
+- Style: modern, minimal, professional
+- Industry: photography studio management
+- Use a clean dashboard design with cards, tables, forms, modals, and gallery sections
+
+Roles:
+Create two separate dashboards:
+1. Admin Dashboard
+2. Staff Dashboard
+
+Main MVP idea:
+This software helps photography studios manage client photo deliveries.
+Staff can create a client record, upload photos, choose photo status, enter price, save the record, generate an invoice, and generate a shareable gallery link for the client.
+Clients can open the gallery link and view/download their photos.
+Admin can manage staff and see all payments received.
+
+Pages / Screens to create:
+
+1. Login Page
+- Beautiful split-screen login page
+- App branding with PixelStudio logo text
+- Role-based login UI
+- Demo login buttons for Admin and Staff
+- Modern card-style login form
+
+2. Admin Dashboard
+- Sidebar navigation
+- Top header with profile area
+- Dashboard cards:
+  - Total Staff
+  - Total Clients
+  - Total Payments
+  - Total Photo Deliveries
+- Recent activity section
+- Payments overview table
+- Staff list preview
+
+3. Manage Staff Page
+- Add new staff button
+- Staff table with:
+  - Name
+  - Email
+  - Phone
+  - Status
+  - Date added
+  - Action buttons
+- Add Staff modal form
+- Edit and Delete action buttons
+- Search input
+
+4. All Payments Page
+- Table showing:
+  - Client name
+  - Staff name
+  - Amount
+  - Payment status
+  - Date
+  - Invoice ID
+- Payment summary cards
+- Filter by status
+
+5. Staff Dashboard
+- Sidebar navigation
+- Dashboard summary cards:
+  - Total Clients
+  - Uploaded Photos
+  - Pending Deliveries
+  - Total Revenue
+- Recent client records table
+- Quick action buttons:
+  - Add New Client
+  - Upload Photos
+  - Generate Invoice
+
+6. New Client Record Page
+- A clean form where staff can enter:
+  - Client Name
+  - Phone Number
+  - Price
+  - Photo Status dropdown:
+    - Softcopy
+    - Hardcopy
+  - Payment Status dropdown:
+    - Paid
+    - Pending
+  - Notes
+  - Upload photo area
+- Save Record button
+- On save, show a preview card with:
+  - Client info
+  - Invoice ID
+  - Generated gallery link
+- Include drag-and-drop upload UI
+
+7. Client Records Page
+- Table or card list of all clients added by staff
+- Show:
+  - Client name
+  - Price
+  - Photo status
+  - Payment status
+  - Gallery link
+  - Date
+- Action buttons:
+  - View
+  - Edit
+  - Copy Link
+  - Generate Invoice
+
+8. Invoice Preview Page / Modal
+- Professional invoice layout
+- Show:
+  - Invoice ID
+  - Client Name
+  - Service type
+  - Photo status
+  - Amount
+  - Date
+  - Staff name
+- Add Print Invoice button
+- Add Download PDF button UI only
+
+9. Client Gallery Page
+- Public-facing gallery page
+- Client opens a shared link and sees:
+  - Client name
+  - Studio name
+  - Beautiful photo grid
+  - Download photo buttons
+  - Download all button
+- Make it elegant and mobile responsive
+- Use sample images
+- Add “shared gallery” style layout
+
+10. Not Found Page
+- Modern 404 page with link back to dashboard
+
+Design requirements:
+- Use React Router for page routing
+- Use Tailwind CSS for styling
+- Use reusable components
+- Use Lucide React icons
+- Use responsive layout for mobile, tablet, and desktop
+- Add a collapsible sidebar
+- Add cards with soft shadows and rounded corners
+- Add modern table styling
+- Add light animations/hover effects
+- Use clean typography and spacing
+- Make it feel premium like a startup SaaS product
+
+Components to create:
+- Sidebar
+- Topbar
+- StatCard
+- DataTable
+- ClientForm
+- UploadBox
+- InvoiceCard
+- GalleryGrid
+- Modal
+- EmptyState
+
+Dummy data:
+Use sample data for:
+- Staff members
+- Client records
+- Payments
+- Invoices
+- Photo gallery images
+
+Important:
+- Do not build backend logic
+- Do not connect database
+- Do not add authentication logic beyond UI demo
+- Use local state and mock data only
+- Structure the code cleanly and professionally
+- Organize files into folders:
+  - components
+  - pages
+  - layouts
+  - data
+  - routes
+
+Extra polish:
+- Add a welcome message on each dashboard
+- Add copy gallery link button
+- Add badge colors for payment status and photo status
+- Add empty states where necessary
+- Add sample invoice number format like INV-0001
+- Add sample gallery URL format like /gallery/px-client-001
+
+Goal:
+Create a realistic front-end MVP for PixelStudio that looks production-ready and is easy to later connect to a backend.

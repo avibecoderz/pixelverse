@@ -1,0 +1,22 @@
+packages:
+  "react-hook-form": "Form state management"
+  "@hookform/resolvers": "Zod validation resolver for forms"
+  "zod": "Schema validation"
+  "react-dropzone": "Drag and drop file upload"
+  "framer-motion": "Animations and transitions"
+  "date-fns": "Date formatting"
+  "recharts": "Charts for dashboard"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without style conflicts"
+
+images:
+  - path: "artifacts/pixelstudio/public/images/login-hero.png"
+    description: "A beautiful, professional, high-end photography studio setting with soft studio lighting, modern cameras, and a clean aesthetic. Cinematic, depth of field."
+    aspect_ratio: "16:9"
+  - path: "artifacts/pixelstudio/public/images/logo-mark.png"
+    description: "A sleek, minimal geometric logo mark for a photography SaaS called PixelStudio. Clean lines, abstract camera lens aperture shape, deep indigo and slate colors on a transparent background."
+    aspect_ratio: "1:1"
+
+notes:
+  - "App uses purely client-side local storage and in-memory mock data to simulate API responses with artificial latency."
+  - "Uses TanStack Query to wrap these local data functions as if they were real endpoints."
