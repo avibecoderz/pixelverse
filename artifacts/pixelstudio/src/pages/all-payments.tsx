@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { usePayments } from "@/hooks/use-data";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DollarSign, CheckCircle2, Clock, Filter, Download } from "lucide-react";
+import { DollarSign, CheckCircle2, Clock, Filter, Download, CreditCard } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/stat-card";
 
@@ -29,80 +29,94 @@ export default function AllPayments() {
           title="Total Revenue" 
           value={`$${totalRevenue.toLocaleString()}`} 
           icon={DollarSign} 
+          colorScheme="violet"
         />
         <StatCard 
           title="Paid Invoices" 
           value={payments?.filter(p => p.paymentStatus === 'Paid').length || 0} 
           icon={CheckCircle2} 
+          colorScheme="emerald"
         />
         <StatCard 
           title="Pending Collection" 
           value={`$${pendingRevenue.toLocaleString()}`} 
           icon={Clock} 
+          colorScheme="amber"
         />
       </div>
 
-      <Card className="border-border/60 shadow-sm">
-        <div className="p-4 border-b border-border/50 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filter Status:</span>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-[140px] h-8 bg-white">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Invoices</SelectItem>
-                <SelectItem value="Paid">Paid Only</SelectItem>
-                <SelectItem value="Pending">Pending Only</SelectItem>
-              </SelectContent>
-            </Select>
+      <Card className="border-border/60 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-border/50 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="bg-white border border-border/60 rounded-md p-1 shadow-sm flex items-center">
+              <Filter className="w-4 h-4 text-muted-foreground ml-2 mr-1" />
+              <Select value={filter} onValueChange={setFilter}>
+                <SelectTrigger className="w-[160px] h-8 bg-transparent border-0 shadow-none focus:ring-0 text-sm font-medium">
+                  <SelectValue placeholder="Filter Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Invoices</SelectItem>
+                  <SelectItem value="Paid">Paid Only</SelectItem>
+                  <SelectItem value="Pending">Pending Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto bg-white shadow-sm hover-elevate">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
         </div>
         
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow>
-                <TableHead className="py-4 pl-6">Invoice ID</TableHead>
-                <TableHead>Client Name</TableHead>
-                <TableHead>Assigned Staff</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead className="text-right pr-6">Status</TableHead>
+            <TableHeader className="bg-slate-50/50 sticky top-0 z-10 shadow-sm">
+              <TableRow className="hover:bg-slate-50/50 border-b border-border/40">
+                <TableHead className="py-4 pl-6 font-semibold">Invoice ID</TableHead>
+                <TableHead className="font-semibold">Client Name</TableHead>
+                <TableHead className="font-semibold">Assigned Staff</TableHead>
+                <TableHead className="font-semibold">Date</TableHead>
+                <TableHead className="font-semibold">Amount</TableHead>
+                <TableHead className="text-right pr-6 font-semibold">Status</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="divide-y divide-border/40">
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    Loading payments data...
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                      <p>Loading payments data...</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : filteredPayments?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No payments found.
+                  <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                        <CreditCard className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-foreground mb-1">No payments found</h3>
+                      <p className="max-w-sm mb-4">No invoices match your selected filter.</p>
+                      <Button variant="outline" onClick={() => setFilter("All")} className="bg-white">Show All</Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPayments?.map(payment => (
-                  <TableRow key={payment.id} className="group">
-                    <TableCell className="font-medium font-mono text-xs pl-6">{payment.invoiceId}</TableCell>
-                    <TableCell className="font-medium text-foreground">{payment.clientName}</TableCell>
-                    <TableCell className="text-muted-foreground">{payment.staffName}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(payment.date).toLocaleDateString()}
+                filteredPayments?.map((payment, index) => (
+                  <TableRow key={payment.id} className={`group transition-colors hover:bg-slate-50/80 ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
+                    <TableCell className="pl-6 py-4">
+                      <span className="font-mono text-xs font-medium bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">{payment.invoiceId}</span>
                     </TableCell>
-                    <TableCell className="font-medium">${payment.amount.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-foreground text-base">{payment.clientName}</TableCell>
+                    <TableCell className="text-muted-foreground">{payment.staffName}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm font-medium">
+                      {new Date(payment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </TableCell>
+                    <TableCell className="font-bold text-foreground text-base">${payment.amount.toLocaleString()}</TableCell>
                     <TableCell className="text-right pr-6">
-                      <Badge variant="outline" className={payment.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'}>
-                        {payment.paymentStatus}
-                      </Badge>
+                      <StatusBadge status={payment.paymentStatus} />
                     </TableCell>
                   </TableRow>
                 ))

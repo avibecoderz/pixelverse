@@ -8,11 +8,14 @@ import {
   Image as ImageIcon,
   LogOut,
   Camera,
-  Menu
+  Bell,
+  MoreVertical,
+  ChevronRight
 } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
+  SidebarFooter,
   SidebarGroup, 
   SidebarGroupContent, 
   SidebarGroupLabel, 
@@ -36,7 +39,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setRole(savedRole);
   }, [location, setLocation]);
 
-  // Don't wrap login or public gallery in standard layout
   if (location.startsWith("/login") || location.startsWith("/gallery") || location.includes("/invoice")) {
     return <>{children}</>;
   }
@@ -68,64 +70,91 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider style={{ "--sidebar-width": "16rem", "--sidebar-width-icon": "4rem" } as React.CSSProperties}>
       <div className="flex h-screen w-full bg-slate-50/50">
-        <Sidebar variant="inset" className="border-r border-border/40">
+        <Sidebar variant="sidebar" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
           <SidebarContent>
-            <div className="flex h-16 items-center px-6 mb-4">
-              <div className="flex items-center gap-2 font-display text-xl font-bold text-primary">
-                <Camera className="w-6 h-6" />
+            <div className="flex h-20 items-center px-6 mb-2">
+              <div className="flex items-center gap-3 font-display text-xl font-bold text-sidebar-primary-foreground">
+                <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/20">
+                  <Camera className="w-5 h-5 text-white relative z-10" />
+                  <div className="absolute inset-0 bg-white/20 blur-md rounded-xl"></div>
+                </div>
                 PixelStudio
               </div>
             </div>
             
             <SidebarGroup>
-              <SidebarGroupLabel className="text-xs tracking-wider uppercase opacity-60">Menu</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-xs tracking-wider uppercase text-sidebar-foreground/50 px-6 mb-2">
+                Main Menu
+              </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu>
-                  {navItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        asChild 
-                        isActive={location === item.url}
-                        className="py-5 transition-all"
-                      >
-                        <Link href={item.url} className="flex items-center gap-3 font-medium">
-                          <item.icon className="w-5 h-5 opacity-70" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                <SidebarMenu className="px-3">
+                  {navItems.map((item) => {
+                    const isActive = location === item.url;
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={isActive}
+                          className={`py-6 px-4 transition-all duration-200 rounded-xl mb-1 ${
+                            isActive 
+                              ? "bg-sidebar-accent/50 text-sidebar-primary-foreground border-l-4 border-primary" 
+                              : "text-sidebar-foreground/70 hover:text-sidebar-primary-foreground hover:bg-sidebar-accent/30"
+                          }`}
+                        >
+                          <Link href={item.url} className="flex items-center gap-3 font-medium text-sm">
+                            <item.icon className={`w-5 h-5 ${isActive ? "text-primary" : "opacity-70"}`} />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
-        </Sidebar>
-        
-        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <header className="h-16 flex-shrink-0 flex items-center justify-between px-4 md:px-8 border-b border-border/40 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="md:hidden" />
-              <h2 className="text-sm font-medium text-muted-foreground capitalize hidden sm:block">
-                {role} Portal
-              </h2>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                  {userName.charAt(0)}
-                </div>
-                <div className="text-sm font-medium text-foreground">
+
+          <SidebarFooter className="p-4 border-t border-sidebar-border">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-sidebar-accent/30 border border-sidebar-border/50">
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-inner">
+                {userName.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-sidebar-primary-foreground truncate">
                   {userName}
                 </div>
+                <div className="text-xs text-sidebar-foreground/60 capitalize truncate">
+                  {role} Portal
+                </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="text-sidebar-foreground/60 hover:text-sidebar-primary-foreground hover:bg-sidebar-accent h-8 w-8 shrink-0 rounded-lg">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+          </SidebarFooter>
+        </Sidebar>
+        
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-dot-pattern">
+          <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 lg:px-10 border-b border-border/40 bg-white/80 backdrop-blur-md sticky top-0 z-10 shadow-sm">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="md:hidden" />
+              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-medium text-foreground capitalize">{role}</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+                <span className="truncate">{
+                  navItems.find(n => n.url === location)?.title || "Page"
+                }</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-full">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
               </Button>
             </div>
           </header>
           
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+          <main className="flex-1 overflow-y-auto p-6 lg:p-10">
             <div className="max-w-7xl mx-auto w-full">
               {children}
             </div>
