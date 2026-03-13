@@ -15,6 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { Staff } from "@/lib/mock-db";
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ export default function ManageStaff() {
   const [search, setSearch]             = useState("");
   const [modalMode, setModalMode]       = useState<"none" | "create" | "edit" | "password">("none");
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Staff | null>(null);
   const [showPw, setShowPw]             = useState(false);
   const [showConfirm, setShowConfirm]   = useState(false);
 
@@ -128,13 +130,19 @@ export default function ManageStaff() {
     toast({ title: `Account ${next === "Active" ? "activated" : "deactivated"}`, description: `${member.name} is now ${next.toLowerCase()}.` });
   };
 
-  const handleDelete = async (member: Staff) => {
-    if (!confirm(`Remove ${member.name} from the studio? This cannot be undone.`)) return;
+  const handleDelete = (member: Staff) => {
+    setDeleteTarget(member);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteStaff.mutateAsync(member.id);
-      toast({ title: "Removed", description: `${member.name} has been removed.` });
+      await deleteStaff.mutateAsync(deleteTarget.id);
+      toast({ title: "Removed", description: `${deleteTarget.name} has been removed.` });
     } catch {
       toast({ title: "Error", description: "Failed to remove staff", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -431,6 +439,18 @@ export default function ManageStaff() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* ── Delete Confirmation ── */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Remove Staff Member?"
+        description={`Are you sure you want to remove ${deleteTarget?.name} from the studio? This action cannot be undone.`}
+        confirmLabel="Yes, Remove"
+        cancelLabel="No, Cancel"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {/* ── Change Password Modal ── */}
       <Dialog open={modalMode === "password"} onOpenChange={open => !open && closeModal()}>
