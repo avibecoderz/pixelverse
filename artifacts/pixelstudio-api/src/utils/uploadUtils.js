@@ -1,59 +1,90 @@
 /**
  * uploadUtils.js — Multer File Upload Configuration
  *
- * Multer is the library that handles multipart/form-data (file uploads).
- * Here we configure:
- *   - Where to save files (disk storage in the /uploads folder)
- *   - What to name them (timestamp + original name to avoid conflicts)
- *   - What file types are allowed (images only)
- *   - Maximum file size (from .env, default 20MB)
+ * Configures how multipart/form-data file uploads are handled:
+ *   - Where files are saved  (local disk, /uploads folder)
+ *   - How they are named     (timestamp + random suffix + extension only)
+ *   - What types are allowed (explicit MIME type allow-list, not a regex)
+ *   - Maximum file size      (from .env MAX_FILE_SIZE, default 20 MB)
+ *
+ * Cloudinary migration note:
+ *   To switch from local disk to Cloudinary, replace `storage` with
+ *   multer-storage-cloudinary and update the imageUrl / publicId fields
+ *   in photoController.js. The middleware chain in the routes does not change.
+ *
+ * UPLOAD_DIR is exported so the photo controller can use the same path
+ * when cleaning up orphaned files after a failed DB insert.
  */
 
 const multer = require("multer");
 const path   = require("path");
 const fs     = require("fs");
 
-// Make sure the uploads folder exists
+// ─── Upload directory ─────────────────────────────────────────────────────────
+// Absolute path so every module that imports UPLOAD_DIR resolves to
+// the same folder regardless of where the importing file sits in the tree.
 const UPLOAD_DIR = path.join(__dirname, "../../uploads");
+
+// Create the folder on startup if it doesn't exist yet
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// ─── Disk Storage ─────────────────────────────────────────────────────────────
+// ─── Allowed MIME types ───────────────────────────────────────────────────────
+// Explicit allow-list instead of a regex so we never accidentally accept a
+// non-image file whose MIME type happens to contain the word "jpeg" etc.
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+// ─── Disk storage ─────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
-  // Where to save the file
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, UPLOAD_DIR);
   },
 
-  // What to name the file (e.g. "photo-1712345678901-portrait.jpg")
-  filename: (req, file, cb) => {
-    const timestamp = Date.now();
-    const safeName  = file.originalname.replace(/\s+/g, "-").toLowerCase();
-    cb(null, `photo-${timestamp}-${safeName}`);
+  /**
+   * Generate a safe, unique filename.
+   *
+   * We deliberately discard the user's original filename and keep only the
+   * file extension. This prevents path-traversal attacks ("../../etc/passwd.jpg"),
+   * shell injection, and filename collisions.
+   *
+   * Result pattern: photo-<timestamp>-<6-char random>.jpg
+   * Example:        photo-1712345678901-k3x9pq.jpg
+   */
+  filename: (_req, file, cb) => {
+    // Extract and sanitise the extension — allow only [a-z0-9] chars
+    const rawExt  = path.extname(file.originalname).toLowerCase();
+    const safeExt = rawExt.replace(/[^.a-z0-9]/g, ""); // strip unexpected chars
+    const random  = Math.random().toString(36).slice(2, 8); // e.g. "k3x9pq"
+    cb(null, `photo-${Date.now()}-${random}${safeExt}`);
   },
 });
 
-// ─── File Filter ──────────────────────────────────────────────────────────────
-// Only allow image files (JPEG, PNG, WEBP, etc.)
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|webp|gif/;
-  const isValid      = allowedTypes.test(file.mimetype);
-
-  if (isValid) {
-    cb(null, true); // accept the file
+// ─── File filter ──────────────────────────────────────────────────────────────
+const fileFilter = (_req, file, cb) => {
+  if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
+    cb(null, true); // accept
   } else {
-    cb(new Error("Only image files are allowed (jpg, png, webp, gif)"), false);
+    // Passing an Error (not null) tells Multer to reject this file and forward
+    // the error to Express's error-handling middleware
+    cb(new Error("Only image files are accepted: jpg, png, webp, gif"), false);
   }
 };
 
-// ─── Multer Instance ──────────────────────────────────────────────────────────
+// ─── Multer instance ──────────────────────────────────────────────────────────
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || "20971520"), // default 20MB
+    // MAX_FILE_SIZE in bytes. Default: 20 MB (20 × 1024 × 1024)
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || "20971520", 10),
   },
 });
 
-module.exports = { upload };
+module.exports = { upload, UPLOAD_DIR };

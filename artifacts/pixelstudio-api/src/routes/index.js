@@ -24,8 +24,8 @@ router.use("/auth",     authRoutes);    // POST /api/auth/login
                                         // POST /api/auth/change-password  (protected)
 router.use("/staff",    staffRoutes);   // CRUD  /api/staff (admin only)
 router.use("/clients",  clientRoutes);  // CRUD  /api/clients
-router.use("/photos",   photoRoutes);   // POST  /api/photos/upload/:clientId
-                                        // DELETE /api/photos/:id
+                                        // POST  /api/clients/:clientId/photos (upload)
+router.use("/photos",   photoRoutes);   // DELETE /api/photos/:id
 router.use("/invoices", invoiceRoutes); // GET/POST /api/invoices
 router.use("/payments", paymentRoutes); // GET/PATCH /api/payments
 router.use("/gallery",  galleryRoutes); // GET  /api/gallery/:token (PUBLIC)
