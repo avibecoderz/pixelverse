@@ -72,7 +72,7 @@ export default function Login() {
               </div>
               <div className="w-px h-12 bg-white/20" />
               <div>
-                <div className="text-4xl font-display font-bold text-white mb-1">$42k</div>
+                <div className="text-4xl font-display font-bold text-white mb-1">₦42M</div>
                 <div className="text-sm font-medium text-slate-400 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" /> Monthly Revenue
                 </div>
@@ -101,7 +101,7 @@ export default function Login() {
 
           <div className="space-y-4">
             <button 
-              onClick={() => handleLogin("admin", "Admin Sarah")}
+              onClick={() => handleLogin("admin", "Ngozi Adeyemi")}
               className="w-full group flex items-center justify-between p-6 rounded-2xl border-2 border-slate-100 bg-white hover:border-primary/50 hover:bg-slate-50/50 transition-all duration-300 text-left hover:shadow-md"
             >
               <div className="flex items-center gap-5">
@@ -119,7 +119,7 @@ export default function Login() {
             </button>
             
             <button 
-              onClick={() => handleLogin("staff", "Photographer Mike")}
+              onClick={() => handleLogin("staff", "Emeka Okafor")}
               className="w-full group flex items-center justify-between p-6 rounded-2xl border-2 border-slate-100 bg-white hover:border-primary/50 hover:bg-slate-50/50 transition-all duration-300 text-left hover:shadow-md"
             >
               <div className="flex items-center gap-5">

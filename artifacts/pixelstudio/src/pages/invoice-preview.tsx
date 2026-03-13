@@ -47,9 +47,9 @@ export default function InvoicePreview() {
                   PixelStudio
                 </div>
                 <div className="space-y-1 text-slate-500 text-sm">
-                  <p>123 Creative Avenue, Suite 400</p>
-                  <p>New York, NY 10001</p>
-                  <p className="mt-1.5 font-medium text-slate-600">hello@pixelstudio.com</p>
+                  <p>14 Admiralty Way, Lekki Phase 1</p>
+                  <p>Lagos, Nigeria</p>
+                  <p className="mt-1.5 font-medium text-slate-600">hello@pixelstudio.ng</p>
                 </div>
               </div>
               <div className="text-right">
@@ -106,7 +106,7 @@ export default function InvoicePreview() {
                       'bg-amber-50 text-amber-700 border-amber-200'
                     }`}>{client.orderStatus}</span>
                   </td>
-                  <td className="py-6 text-right font-bold text-xl text-slate-900">${client.price.toLocaleString()}</td>
+                  <td className="py-6 text-right font-bold text-xl text-slate-900">₦{client.price.toLocaleString()}</td>
                 </tr>
               </tbody>
             </table>
@@ -115,13 +115,13 @@ export default function InvoicePreview() {
             <div className="flex justify-end">
               <div className="w-72 space-y-3.5 bg-slate-50 p-6 rounded-xl border border-slate-100">
                 <div className="flex justify-between text-sm text-slate-500">
-                  <span>Subtotal</span><span className="text-slate-700 font-medium">${client.price.toLocaleString()}</span>
+                  <span>Subtotal</span><span className="text-slate-700 font-medium">₦{client.price.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-500">
-                  <span>Tax (0%)</span><span className="text-slate-700 font-medium">$0.00</span>
+                  <span>Tax (0%)</span><span className="text-slate-700 font-medium">₦0.00</span>
                 </div>
                 <div className="flex justify-between text-xl font-bold border-t-2 border-slate-200 pt-4 text-slate-900">
-                  <span>Total Due</span><span>${client.price.toLocaleString()}</span>
+                  <span>Total Due</span><span>₦{client.price.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function InvoicePreview() {
             {/* Footer */}
             <div className="mt-20 pt-8 border-t-2 border-slate-100 text-center text-slate-500 text-sm space-y-1">
               <p className="font-medium text-slate-600">Thank you for choosing PixelStudio for your photography needs.</p>
-              <p>Questions? Contact us at <span className="text-primary font-semibold">hello@pixelstudio.com</span></p>
+              <p>Questions? Contact us at <span className="text-primary font-semibold">hello@pixelstudio.ng</span></p>
             </div>
           </CardContent>
         </Card>

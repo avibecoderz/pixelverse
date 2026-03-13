@@ -89,7 +89,7 @@ export default function NewClient() {
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Invoice ID</p>
                 <p className="font-mono font-bold text-xl text-slate-900">{successData.invoiceId}</p>
-                <p className="text-sm text-slate-500 mt-0.5">${successData.price.toLocaleString()}</p>
+                <p className="text-sm text-slate-500 mt-0.5">₦{successData.price.toLocaleString()}</p>
               </div>
             </div>
             <div>
@@ -150,7 +150,7 @@ export default function NewClient() {
               )} />
               <FormField control={form.control} name="price" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Agreed Price ($)</FormLabel>
+                  <FormLabel>Agreed Price (₦)</FormLabel>
                   <FormControl><Input type="number" placeholder="1500" className="h-11" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>

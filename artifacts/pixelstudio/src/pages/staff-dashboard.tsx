@@ -47,7 +47,7 @@ export default function StaffDashboard() {
         <StatCard title="Pending Editing" value={isLoading ? "…" : pendingEditing} icon={Camera} colorScheme="amber"
           trend={pendingEditing > 0 ? { value: pendingEditing, label: "need attention" } : undefined} />
         <StatCard title="Uploaded Galleries" value={isLoading ? "…" : uploadedGalleries} icon={ImageIcon} colorScheme="emerald" />
-        <StatCard title="Total Revenue" value={isLoading ? "…" : `$${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="blue" />
+        <StatCard title="Total Revenue" value={isLoading ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="blue" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

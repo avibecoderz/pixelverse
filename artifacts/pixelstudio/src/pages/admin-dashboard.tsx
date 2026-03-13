@@ -35,7 +35,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard title="Total Staff" value={loadingStaff ? "…" : staff?.length ?? 0} icon={Briefcase} colorScheme="violet" />
         <StatCard title="Total Clients" value={loadingClients ? "…" : clients?.length ?? 0} icon={Users} colorScheme="blue" />
-        <StatCard title="Total Revenue" value={loadingPayments ? "…" : `$${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="emerald"
+        <StatCard title="Total Revenue" value={loadingPayments ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="emerald"
           trend={{ value: 8, label: "this month" }} />
         <StatCard title="Pending Payments" value={loadingPayments ? "…" : pendingPayments} icon={Clock} colorScheme="amber" />
         <StatCard title="Galleries Live" value={loadingClients ? "…" : uploadedGalleries} icon={ImageIcon} colorScheme="rose" />
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
                     <tr key={p.id} className={`hover:bg-slate-50/60 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
                       <td className="py-3.5 pl-6 font-semibold text-foreground">{p.clientName}</td>
                       <td className="py-3.5 text-muted-foreground text-sm">{p.staffName}</td>
-                      <td className="py-3.5 font-bold text-foreground">${p.amount.toLocaleString()}</td>
+                      <td className="py-3.5 font-bold text-foreground">₦{p.amount.toLocaleString()}</td>
                       <td className="py-3.5"><StatusBadge status={p.paymentStatus} /></td>
                       <td className="py-3.5 text-right pr-6 text-muted-foreground text-sm">
                         {new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
                     <td className="py-3.5"><StatusBadge status={c.photoFormat} /></td>
                     <td className="py-3.5"><StatusBadge status={c.orderStatus} /></td>
                     <td className="py-3.5"><StatusBadge status={c.paymentStatus} /></td>
-                    <td className="py-3.5 text-right pr-6 font-bold text-foreground">${c.price.toLocaleString()}</td>
+                    <td className="py-3.5 text-right pr-6 font-bold text-foreground">₦{c.price.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

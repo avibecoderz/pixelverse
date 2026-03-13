@@ -75,7 +75,7 @@ export default function ClientDetail() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Phone", value: client.phone, icon: Phone },
-          { label: "Price", value: `$${client.price.toLocaleString()}`, icon: DollarSign },
+          { label: "Price", value: `₦${client.price.toLocaleString()}`, icon: DollarSign },
           { label: "Date Created", value: new Date(client.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), icon: Calendar },
           { label: "Photos Uploaded", value: `${client.photos.length} photos`, icon: ImageIcon },
         ].map(({ label, value, icon: Icon }) => (

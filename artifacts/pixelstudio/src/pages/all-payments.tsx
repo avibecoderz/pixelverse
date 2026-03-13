@@ -27,7 +27,7 @@ export default function AllPayments() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           title="Total Revenue" 
-          value={`$${totalRevenue.toLocaleString()}`} 
+          value={`₦${totalRevenue.toLocaleString()}`} 
           icon={DollarSign} 
           colorScheme="violet"
         />
@@ -39,7 +39,7 @@ export default function AllPayments() {
         />
         <StatCard 
           title="Pending Collection" 
-          value={`$${pendingRevenue.toLocaleString()}`} 
+          value={`₦${pendingRevenue.toLocaleString()}`} 
           icon={Clock} 
           colorScheme="amber"
         />
@@ -114,7 +114,7 @@ export default function AllPayments() {
                     <TableCell className="text-muted-foreground text-sm font-medium">
                       {new Date(payment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     </TableCell>
-                    <TableCell className="font-bold text-foreground text-base">${payment.amount.toLocaleString()}</TableCell>
+                    <TableCell className="font-bold text-foreground text-base">₦{payment.amount.toLocaleString()}</TableCell>
                     <TableCell className="text-right pr-6">
                       <StatusBadge status={payment.paymentStatus} />
                     </TableCell>

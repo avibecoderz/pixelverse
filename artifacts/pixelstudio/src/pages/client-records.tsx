@@ -140,7 +140,7 @@ export default function ClientRecords() {
                       <p className="font-semibold text-foreground">{client.clientName}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{client.phone} · <span className="font-mono">{client.invoiceId}</span></p>
                     </TableCell>
-                    <TableCell className="font-semibold text-foreground">${client.price.toLocaleString()}</TableCell>
+                    <TableCell className="font-semibold text-foreground">₦{client.price.toLocaleString()}</TableCell>
                     <TableCell><StatusBadge status={client.photoFormat} /></TableCell>
                     <TableCell><StatusBadge status={client.paymentStatus} /></TableCell>
                     <TableCell><StatusBadge status={client.orderStatus} /></TableCell>
