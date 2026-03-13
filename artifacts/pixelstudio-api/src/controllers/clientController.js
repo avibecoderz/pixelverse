@@ -17,7 +17,7 @@ const prisma             = require("../utils/prismaClient");
 const { success, error } = require("../utils/responseUtils");
 
 // ─── Enum allow-lists ─────────────────────────────────────────────────────────
-// These match the Prisma schema enums exactly (uppercase).
+// Match the Prisma schema enums exactly (uppercase).
 // Validating here gives the caller a clear error message instead of letting
 // Prisma throw an unhandled exception with a cryptic internal message.
 
@@ -27,8 +27,8 @@ const VALID_ORDER_STATUSES   = ["PENDING", "EDITING", "READY", "DELIVERED"];
 
 // ─── Relation shape for list responses ───────────────────────────────────────
 // Used in getAllClients — lightweight summary per client.
-// Photos are NOT included in full — only a count is returned so the list
-// doesn't explode in size when clients have hundreds of uploaded images.
+// Photos are NOT fetched in full — only a count is returned so the list
+// does not explode in size when clients have hundreds of uploaded images.
 
 const CLIENT_LIST_INCLUDE = {
   createdBy: { select: { id: true, name: true, email: true } },
@@ -37,8 +37,8 @@ const CLIENT_LIST_INCLUDE = {
 };
 
 // ─── Relation shape for detail responses ─────────────────────────────────────
-// Used in getClientById — returns everything for the client detail page.
-// Photos come through the gallery so they are displayed in the correct order.
+// Used in getClientById — returns everything needed for the client detail page.
+// Photos come through the gallery so they are displayed in upload order.
 
 const CLIENT_DETAIL_INCLUDE = {
   createdBy: { select: { id: true, name: true, email: true } },
@@ -50,34 +50,51 @@ const CLIENT_DETAIL_INCLUDE = {
       },
     },
   },
-  invoices: {
-    orderBy: { createdAt: "desc" },
-  },
-  payments: {
-    orderBy: { createdAt: "desc" },
-  },
+  invoices: { orderBy: { createdAt: "desc" } },
+  payments: { orderBy: { createdAt: "desc" } },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Trim a string value and return null if it is blank.
- * Prevents whitespace-only values from reaching the database.
+ * Trim a string field from the request body.
+ *
+ * Returns:
+ *   null           — when the value is undefined, null, or blank after trimming
+ *   trimmed string — when a non-blank string is provided
+ *
+ * Always returns null (never undefined) so callers can use a simple
+ * `if (!value)` check for both "missing" and "blank" without ambiguity.
  */
-const trimOrNull = (value) => {
-  if (value === undefined || value === null) return undefined; // not provided
+const trimField = (value) => {
+  if (value === undefined || value === null) return null;
   const trimmed = String(value).trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+/**
+ * Normalise a nullable text field (like `notes`) for storage.
+ * An empty string or whitespace-only value becomes null — no blank notes in the DB.
+ * An actual string is stored trimmed.
+ * Explicitly sending null clears the field.
+ *
+ * @param {*} value — raw value from req.body
+ * @returns {string|null}
+ */
+const normaliseText = (value) => {
+  if (value == null) return null;           // null or undefined → clear the field
+  const trimmed = String(value).trim();
+  return trimmed.length > 0 ? trimmed : null; // blank string → null
 };
 
 // ─── GET /api/clients ─────────────────────────────────────────────────────────
 /**
  * Returns a list of clients with summary info (no full photo arrays).
  *
- * Admin  → sees every client in the system.
+ * Admin  → sees every client in the system, newest first.
  * Staff  → sees only the clients they created (filtered by createdById).
  *
- * Optional query filters:
+ * Optional query filters (both validated against schema enum values):
  *   ?orderStatus=EDITING      → filter by workflow stage
  *   ?paymentStatus=PENDING    → filter by payment state
  */
@@ -85,20 +102,20 @@ const getAllClients = async (req, res, next) => {
   try {
     const where = {};
 
-    // Staff only see their own clients
+    // Staff see only their own clients
     if (req.user.role === "staff") {
       where.createdById = req.user.id;
     }
 
     // Optional query string filters — validated against allow-lists
-    if (req.query.orderStatus) {
+    if (req.query.orderStatus !== undefined) {
       if (!VALID_ORDER_STATUSES.includes(req.query.orderStatus)) {
         return error(res, `orderStatus must be one of: ${VALID_ORDER_STATUSES.join(", ")}`, 400);
       }
       where.orderStatus = req.query.orderStatus;
     }
 
-    if (req.query.paymentStatus) {
+    if (req.query.paymentStatus !== undefined) {
       if (!VALID_PAYMENT_STATUSES.includes(req.query.paymentStatus)) {
         return error(res, `paymentStatus must be one of: ${VALID_PAYMENT_STATUSES.join(", ")}`, 400);
       }
@@ -147,58 +164,60 @@ const getClientById = async (req, res, next) => {
 // ─── POST /api/clients ────────────────────────────────────────────────────────
 /**
  * Creates a new client record.
- * The logged-in staff member (or admin) is automatically set as the creator.
+ * The logged-in user (staff or admin) is automatically set as the creator via JWT.
  *
  * Required body fields: { clientName, phone, price }
  * Optional body fields: { photoFormat, notes }
  *
- * paymentStatus and orderStatus are always defaulted to PENDING on creation —
- * they are managed by the workflow (payments module, order status updates).
+ * paymentStatus and orderStatus always start as PENDING — they are managed
+ * by the payments module and order status updates respectively.
  *
- * A unique galleryToken is generated here. It is stored on the client record
- * and later reused as gallery.token when photos are first uploaded.
- * The share link sent to the customer uses this token:
- *   e.g. https://pixelstudio.ng/gallery/<token>
+ * A 32-character hex galleryToken is generated here and stored on the client.
+ * It is later reused as gallery.token when photos are first uploaded.
+ * The share link sent to the customer is built from this token:
+ *   e.g. https://pixelstudio.ng/gallery/<galleryToken>
  */
 const createClient = async (req, res, next) => {
   try {
-    const { price, photoFormat, notes } = req.body;
+    const { price, photoFormat } = req.body;
 
-    // ── Required fields ───────────────────────────────────────────────────────
-    const clientName = trimOrNull(req.body.clientName);
-    const phone      = trimOrNull(req.body.phone);
+    // ── Required string fields ────────────────────────────────────────────────
+    const clientName = trimField(req.body.clientName);
+    const phone      = trimField(req.body.phone);
 
     if (!clientName) return error(res, "clientName is required and must not be blank", 400);
     if (!phone)      return error(res, "phone is required and must not be blank",      400);
 
-    // ── Price validation ──────────────────────────────────────────────────────
+    // ── Price ─────────────────────────────────────────────────────────────────
+    // Must be present and a positive number. `price` may arrive as a string from
+    // JSON so we parseFloat it before validating.
     const parsedPrice = parseFloat(price);
-    if (!price || isNaN(parsedPrice) || parsedPrice <= 0) {
+    if (price == null || isNaN(parsedPrice) || parsedPrice <= 0) {
       return error(res, "price must be a positive number greater than zero", 400);
     }
 
-    // ── PhotoFormat validation ────────────────────────────────────────────────
-    // Must be one of the schema enum values. Default to SOFTCOPY if omitted.
+    // ── photoFormat ───────────────────────────────────────────────────────────
+    // Optional — defaults to SOFTCOPY. Must be a valid schema enum value if sent.
     const resolvedFormat = photoFormat || "SOFTCOPY";
     if (!VALID_PHOTO_FORMATS.includes(resolvedFormat)) {
       return error(res, `photoFormat must be one of: ${VALID_PHOTO_FORMATS.join(", ")}`, 400);
     }
 
-    // ── Generate gallery token ────────────────────────────────────────────────
-    // 16 random bytes → 32-character hex string. Cryptographically secure,
+    // ── Gallery token ─────────────────────────────────────────────────────────
+    // 16 random bytes → 32-character hex string. Cryptographically secure —
     // extremely unlikely to collide even with thousands of clients.
     const galleryToken = crypto.randomBytes(16).toString("hex");
 
-    // ── Create the record ─────────────────────────────────────────────────────
+    // ── Create record ─────────────────────────────────────────────────────────
     const client = await prisma.client.create({
       data: {
         clientName,
         phone,
         price:       parsedPrice,
         photoFormat: resolvedFormat,
-        notes:       notes ? String(notes).trim() || null : null,
+        notes:       normaliseText(req.body.notes), // blank/null → stored as null
         galleryToken,
-        createdById: req.user.id, // set from the JWT — cannot be overridden by the body
+        createdById: req.user.id, // always from JWT — body cannot override this
       },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -214,21 +233,22 @@ const createClient = async (req, res, next) => {
 // ─── PUT /api/clients/:id ─────────────────────────────────────────────────────
 /**
  * Updates a client record. Only the fields present in the request body are changed.
+ * Sending a field as null explicitly clears it (only valid for nullable fields like notes).
  *
- * Staff can update: clientName, phone, price, photoFormat, orderStatus, notes
+ * Staff can update:  clientName, phone, price, photoFormat, orderStatus, notes
  * Admin can also update: paymentStatus
  *
  * paymentStatus is restricted from staff because it is managed by the payments
- * module — recording a payment via POST /api/payments/:clientId updates it
- * automatically. Allowing staff to set it directly would bypass that flow.
+ * module — calling POST /api/payments/:clientId updates it automatically.
+ * Allowing staff to set it directly would bypass that audit trail.
  *
- * galleryToken and createdById can never be changed after creation.
+ * Fields that can never be changed: galleryToken, createdById, createdAt.
  */
 const updateClient = async (req, res, next) => {
   try {
     const clientId = req.params.id;
 
-    // ── Ownership check ───────────────────────────────────────────────────────
+    // ── Fetch and ownership check ─────────────────────────────────────────────
     const existing = await prisma.client.findUnique({ where: { id: clientId } });
     if (!existing) return error(res, "Client not found", 404);
 
@@ -236,32 +256,32 @@ const updateClient = async (req, res, next) => {
       return error(res, "Access denied. You can only update your own clients.", 403);
     }
 
-    // ── Build the update object ───────────────────────────────────────────────
+    // ── Build the update payload ──────────────────────────────────────────────
     const updateData = {};
 
-    // String fields — trim and reject blank values
-    const clientName = trimOrNull(req.body.clientName);
-    const phone      = trimOrNull(req.body.phone);
-
+    // String fields — trim and reject blank/null values (these are required in DB)
     if (req.body.clientName !== undefined) {
-      if (!clientName) return error(res, "clientName must not be blank", 400);
+      const clientName = trimField(req.body.clientName);
+      if (!clientName) return error(res, "clientName is required and must not be blank", 400);
       updateData.clientName = clientName;
     }
+
     if (req.body.phone !== undefined) {
-      if (!phone) return error(res, "phone must not be blank", 400);
+      const phone = trimField(req.body.phone);
+      if (!phone) return error(res, "phone is required and must not be blank", 400);
       updateData.phone = phone;
     }
 
-    // Price — must be a positive number if provided
+    // Price — must be a positive number when provided
     if (req.body.price !== undefined) {
       const parsedPrice = parseFloat(req.body.price);
-      if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      if (req.body.price == null || isNaN(parsedPrice) || parsedPrice <= 0) {
         return error(res, "price must be a positive number greater than zero", 400);
       }
       updateData.price = parsedPrice;
     }
 
-    // Enum fields — validate against allow-lists before touching the DB
+    // Enum fields — validated against allow-lists before touching the DB
     if (req.body.photoFormat !== undefined) {
       if (!VALID_PHOTO_FORMATS.includes(req.body.photoFormat)) {
         return error(res, `photoFormat must be one of: ${VALID_PHOTO_FORMATS.join(", ")}`, 400);
@@ -277,12 +297,12 @@ const updateClient = async (req, res, next) => {
     }
 
     // paymentStatus — admin only.
-    // Staff must use the payments module to change payment state.
+    // Staff must go through the payments module so every payment is recorded.
     if (req.body.paymentStatus !== undefined) {
       if (req.user.role === "staff") {
         return error(
           res,
-          "Staff cannot set paymentStatus directly. Use the payments module to record a payment.",
+          "Staff cannot set paymentStatus directly. Record a payment via the payments module instead.",
           403
         );
       }
@@ -292,13 +312,14 @@ const updateClient = async (req, res, next) => {
       updateData.paymentStatus = req.body.paymentStatus;
     }
 
-    // Notes — allow explicitly clearing to null by sending null or empty string
+    // Notes — nullable text field.
+    // Sending null or "" explicitly clears the field in the DB.
+    // Not sending notes at all leaves it unchanged.
     if (req.body.notes !== undefined) {
-      const trimmedNotes = req.body.notes ? String(req.body.notes).trim() : null;
-      updateData.notes = trimmedNotes || null;
+      updateData.notes = normaliseText(req.body.notes);
     }
 
-    // ── Guard against empty update ────────────────────────────────────────────
+    // ── Guard: nothing to update ──────────────────────────────────────────────
     if (Object.keys(updateData).length === 0) {
       return error(res, "No valid fields were provided to update", 400);
     }
@@ -320,8 +341,20 @@ const updateClient = async (req, res, next) => {
 // ─── DELETE /api/clients/:id ──────────────────────────────────────────────────
 /**
  * Permanently deletes a client record.
- * The schema cascades the delete to: gallery → photos, invoices, payments.
- * Staff can only delete their own clients. Admin can delete any.
+ *
+ * Cascade chain (all automatic):
+ *   Client deleted
+ *     → Gallery deleted (Client→Gallery: CASCADE)
+ *         → Photos deleted (Gallery→Photos: CASCADE)
+ *     → Invoices deleted (Client→Invoices: CASCADE)
+ *     → Payments deleted (Client→Payments: CASCADE)
+ *
+ * Note: Photo.clientId has onDelete: Restrict, but since the Gallery CASCADE
+ * deletes all photos first (via Gallery→Photos), MySQL's InnoDB finds no
+ * photos remaining when it evaluates the Restrict constraint, so the delete
+ * succeeds. This is by design in the schema.
+ *
+ * Staff can only delete clients they created. Admin can delete any.
  */
 const deleteClient = async (req, res, next) => {
   try {
@@ -342,10 +375,12 @@ const deleteClient = async (req, res, next) => {
 // ─── GET /api/gallery/:token ──────────────────────────────────────────────────
 /**
  * PUBLIC endpoint — no authentication required.
- * This is what the studio sends to the customer as their photo delivery link.
+ * This is the link the studio sends to the customer as their photo delivery URL.
  *
  * Looks up the Gallery by its unique token and returns the photos inside.
- * Returns 403 if the order is still PENDING or EDITING (not ready for delivery).
+ * Returns 403 if the order is still PENDING or EDITING — not ready for the client.
+ *
+ * Mounted at: GET /api/gallery/:token (via galleryRoutes.js — no authMiddleware)
  */
 const getGalleryByToken = async (req, res, next) => {
   try {
@@ -372,7 +407,7 @@ const getGalleryByToken = async (req, res, next) => {
 
     const { orderStatus } = gallery.client;
 
-    // Block access if the order hasn't reached the delivery stage yet
+    // Block access while editing is still in progress
     if (orderStatus === "PENDING" || orderStatus === "EDITING") {
       return error(
         res,
