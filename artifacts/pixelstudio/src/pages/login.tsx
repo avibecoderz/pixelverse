@@ -5,11 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Camera, ShieldCheck, UserCircle, CheckCircle, Eye, EyeOff, ImageIcon, CreditCard, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { mockApi } from "@/lib/mock-db";
 
-const CREDENTIALS = {
-  admin: { username: "admin01", password: "admin123", name: "Ngozi Adeyemi" },
-  staff: { username: "staff01", password: "staff123", name: "Emeka Okafor" },
-};
+const ADMIN_CREDENTIALS = { username: "admin01", password: "admin123", name: "Ngozi Adeyemi" };
 
 type Role = "admin" | "staff";
 
@@ -42,23 +40,42 @@ export default function Login() {
     setError("");
     setLoading(true);
 
-    await new Promise(r => setTimeout(r, 600)); // simulate auth delay
-
-    const creds = CREDENTIALS[activeTab];
-    if (username === creds.username && password === creds.password) {
-      localStorage.setItem("role", activeTab);
-      localStorage.setItem("user_name", creds.name);
-      toast({ title: "Login successful", description: `Welcome back, ${creds.name}!` });
-      setLocation(activeTab === "admin" ? "/admin" : "/staff");
-    } else {
-      setError("Incorrect username or password. Please try again.");
+    try {
+      if (activeTab === "admin") {
+        await new Promise(r => setTimeout(r, 600));
+        if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+          localStorage.setItem("role", "admin");
+          localStorage.setItem("user_name", ADMIN_CREDENTIALS.name);
+          toast({ title: "Login successful", description: `Welcome back, ${ADMIN_CREDENTIALS.name}!` });
+          setLocation("/admin");
+        } else {
+          setError("Incorrect admin username or password.");
+        }
+      } else {
+        const staff = await mockApi.validateStaffCredentials(username, password);
+        if (staff) {
+          localStorage.setItem("role", "staff");
+          localStorage.setItem("user_name", staff.name);
+          localStorage.setItem("staff_id", staff.id);
+          toast({ title: "Login successful", description: `Welcome back, ${staff.name}!` });
+          setLocation("/staff");
+        } else {
+          setError("Incorrect username or password, or account is inactive.");
+        }
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fillDemo = () => {
-    setUsername(CREDENTIALS[activeTab].username);
-    setPassword(CREDENTIALS[activeTab].password);
+    if (activeTab === "admin") {
+      setUsername(ADMIN_CREDENTIALS.username);
+      setPassword(ADMIN_CREDENTIALS.password);
+    } else {
+      setUsername("staff01");
+      setPassword("staff123");
+    }
     setError("");
   };
 
@@ -120,7 +137,6 @@ export default function Login() {
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-indigo-600 lg:hidden" />
 
         <div className="w-full max-w-md space-y-8">
-          {/* Mobile logo */}
           <div className="flex items-center justify-center gap-2 lg:hidden">
             <div className="bg-primary p-2 rounded-xl text-white">
               <Camera className="w-6 h-6" />
@@ -136,21 +152,18 @@ export default function Login() {
           {/* Role tabs */}
           <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl">
             {([
-              { role: "admin" as Role, label: "Admin", icon: ShieldCheck },
-              { role: "staff" as Role, label: "Staff", icon: UserCircle },
+              { role: "admin" as Role, label: "Admin Login", icon: ShieldCheck },
+              { role: "staff" as Role, label: "Staff Login", icon: UserCircle },
             ]).map(({ role, label, icon: Icon }) => (
               <button
                 key={role}
                 type="button"
                 onClick={() => handleTabChange(role)}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200
-                  ${activeTab === role
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                  }`}
+                  ${activeTab === role ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
               >
                 <Icon className="w-4 h-4" />
-                {label} Login
+                {label}
               </button>
             ))}
           </div>
@@ -160,18 +173,18 @@ export default function Login() {
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${activeTab === "admin" ? "bg-indigo-100 text-indigo-600" : "bg-violet-100 text-violet-600"}`}>
               {activeTab === "admin" ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
             </div>
-            <div>
+            <div className="flex-1">
               <p className={`text-sm font-bold ${activeTab === "admin" ? "text-indigo-800" : "text-violet-800"}`}>
                 {activeTab === "admin" ? "Studio Admin" : "Staff / Photographer"}
               </p>
               <p className={`text-xs mt-0.5 ${activeTab === "admin" ? "text-indigo-600" : "text-violet-600"}`}>
-                {activeTab === "admin" ? "Manage staff, payments & settings" : "Upload photos & manage clients"}
+                {activeTab === "admin" ? "Full access — manage staff, payments & settings" : "Upload photos & manage your clients"}
               </p>
             </div>
             <button
               type="button"
               onClick={fillDemo}
-              className={`ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}
+              className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}
             >
               Fill Demo
             </button>
@@ -223,12 +236,7 @@ export default function Login() {
               </div>
             )}
 
-            <Button
-              type="submit"
-              size="lg"
-              disabled={loading}
-              className="w-full h-12 text-base font-bold shadow-md"
-            >
+            <Button type="submit" size="lg" disabled={loading} className="w-full h-12 text-base font-bold shadow-md">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -237,9 +245,8 @@ export default function Login() {
               ) : "Sign In"}
             </Button>
 
-            {/* Demo hint */}
             <p className="text-center text-xs text-slate-400">
-              Demo credentials — {activeTab === "admin" ? "admin01 / admin123" : "staff01 / staff123"}
+              Demo — {activeTab === "admin" ? "admin01 / admin123" : "staff01 / staff123"}
             </p>
           </form>
 
