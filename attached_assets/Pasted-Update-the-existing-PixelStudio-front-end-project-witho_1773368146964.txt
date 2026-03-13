@@ -1,0 +1,160 @@
+Update the existing PixelStudio front-end project without rebuilding it from scratch. Keep the current project structure, routing, components, and design style. Only extend the current functionality and pages to support a better client photo delivery workflow.
+
+Goal:
+Improve the system so staff first create a client record, then later upload edited photos for that specific client, and the system generates a gallery link the client can use to view and download their photos.
+
+Important:
+Do NOT recreate the project. Modify and extend the current pages and components while keeping the existing layout, sidebar, routing, and UI style.
+
+Workflow to implement:
+
+1. Client Record Creation
+   Staff should be able to create a new client record before photos are uploaded.
+
+The form should include:
+
+* Client Name
+* Phone Number
+* Price
+* Photo Format (Softcopy / Hardcopy / Both)
+* Payment Status (Paid / Pending)
+* Order Status (Pending, Editing, Ready, Delivered)
+* Notes
+
+When the staff clicks Save:
+
+* The client record should be stored in the mock data list
+* The client should appear in the Client Records page
+* Photos are not required at this stage
+
+2. Client Records Page
+   Update the existing client list page so it shows:
+
+Columns:
+
+* Client Name
+* Phone
+* Price
+* Photo Format
+* Payment Status
+* Order Status
+* Upload Status
+* Date Created
+* Actions
+
+Actions should include:
+
+* View Client
+* Edit Client
+* Upload Photos
+* Generate Invoice
+* Copy Gallery Link (if photos exist)
+
+Add search and status badges for better UI.
+
+3. Client Details Page
+   Create or improve a page where staff can open a client record and see:
+
+* Client information
+* Price
+* Payment status
+* Order status
+* Uploaded photo count
+* Gallery link (if available)
+
+Buttons:
+
+* Upload Photos
+* Generate Invoice
+* Copy Gallery Link
+
+4. Upload Photos Feature
+   When staff clicks "Upload Photos":
+
+* Open an upload page or modal for that specific client
+* Include a drag-and-drop upload area
+* Allow multiple image uploads
+* Show preview thumbnails before saving
+
+After upload:
+
+* Save photos to mock data
+* Generate a unique gallery link for that client
+  Example:
+  /gallery/px-client-001
+
+Display the generated gallery link with a "Copy Link" button.
+
+5. Gallery Page
+   Update or create the public gallery page.
+
+When a client opens the link they should see:
+
+* Client name
+* Studio name (PixelStudio)
+* Photo grid gallery
+* Download button on each photo
+* "Download All" button
+* Mobile-friendly layout
+
+Use sample images as mock data.
+
+6. Dashboard Improvements
+
+Staff Dashboard:
+Add summary cards for:
+
+* Total Clients
+* Pending Editing
+* Ready for Upload
+* Uploaded Galleries
+* Total Revenue
+
+Add a recent clients table and quick action buttons.
+
+Admin Dashboard:
+Add summary cards for:
+
+* Total Staff
+* Total Clients
+* Total Payments
+* Pending Payments
+* Total Uploaded Galleries
+
+Add recent payments and staff activity sections.
+
+7. Invoice Preview
+   Improve the invoice preview page or modal.
+
+Invoice should show:
+
+* Invoice ID
+* Client Name
+* Service Type
+* Photo Format
+* Amount
+* Payment Status
+* Staff Name
+* Date
+
+Include buttons for:
+
+* Print Invoice
+* Download PDF (UI only)
+
+8. UI and Code Quality
+   Keep the current design system but improve where needed.
+
+Requirements:
+
+* Maintain existing React + Vite + Tailwind setup
+* Use React Router for navigation
+* Keep the existing sidebar layout
+* Use reusable components
+* Use mock data only
+* Do not add backend logic
+
+Organize code cleanly if new components are created.
+
+Goal:
+Extend the existing PixelStudio project to support a realistic photography workflow where staff create a client record first, upload edited photos later, generate a gallery link, and the client can view and download their images.

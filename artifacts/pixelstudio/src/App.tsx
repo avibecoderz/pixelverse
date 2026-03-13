@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-// Layout & Pages
 import { AppLayout } from "@/components/layout";
 import Login from "@/pages/login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -12,17 +11,14 @@ import AllPayments from "@/pages/all-payments";
 import StaffDashboard from "@/pages/staff-dashboard";
 import NewClient from "@/pages/new-client";
 import ClientRecords from "@/pages/client-records";
+import ClientDetail from "@/pages/client-detail";
+import UploadPhotos from "@/pages/upload-photos";
 import InvoicePreview from "@/pages/invoice-preview";
 import ClientGallery from "@/pages/client-gallery";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes mock cache
-    },
-  },
+  defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 1000 * 60 * 5 } },
 });
 
 function Router() {
@@ -30,15 +26,12 @@ function Router() {
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/gallery/:id" component={ClientGallery} />
-      
-      {/* Protected Routes wrapped in Layout */}
+
       <Route path="/">
-        <AppLayout>
-          {/* Default redirect handled in layout, but let's mount nothing specific here */}
-          <div />
-        </AppLayout>
+        <AppLayout><div /></AppLayout>
       </Route>
-      
+
+      {/* Admin */}
       <Route path="/admin">
         <AppLayout><AdminDashboard /></AppLayout>
       </Route>
@@ -48,7 +41,8 @@ function Router() {
       <Route path="/admin/payments">
         <AppLayout><AllPayments /></AppLayout>
       </Route>
-      
+
+      {/* Staff — specific routes before parameterised ones */}
       <Route path="/staff">
         <AppLayout><StaffDashboard /></AppLayout>
       </Route>
@@ -58,9 +52,14 @@ function Router() {
       <Route path="/staff/clients">
         <AppLayout><ClientRecords /></AppLayout>
       </Route>
-      
       <Route path="/staff/clients/:id/invoice">
         <AppLayout><InvoicePreview /></AppLayout>
+      </Route>
+      <Route path="/staff/clients/:id/upload">
+        <AppLayout><UploadPhotos /></AppLayout>
+      </Route>
+      <Route path="/staff/clients/:id">
+        <AppLayout><ClientDetail /></AppLayout>
       </Route>
 
       <Route component={NotFound} />
@@ -68,7 +67,7 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -80,5 +79,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;

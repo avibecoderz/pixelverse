@@ -1,29 +1,37 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useClients } from "@/hooks/use-data";
+import { useClients, useUpdateClient } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Link as LinkIcon, FileText, Image as ImageIcon, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Link as LinkIcon, FileText, UploadCloud, Eye, Users, SlidersHorizontal } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ClientRecords() {
   const { data: clients, isLoading } = useClients();
-  const [search, setSearch] = useState("");
-  const [_, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [filterPayment, setFilterPayment] = useState("All");
+  const [filterOrder, setFilterOrder] = useState("All");
 
-  const filteredClients = clients?.filter(c => 
-    c.clientName.toLowerCase().includes(search.toLowerCase()) || 
-    c.invoiceId.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = clients?.filter(c => {
+    const matchesSearch =
+      c.clientName.toLowerCase().includes(search.toLowerCase()) ||
+      c.invoiceId.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone.includes(search);
+    const matchesPayment = filterPayment === "All" || c.paymentStatus === filterPayment;
+    const matchesOrder = filterOrder === "All" || c.orderStatus === filterOrder;
+    return matchesSearch && matchesPayment && matchesOrder;
+  });
 
   const copyLink = (link: string) => {
     navigator.clipboard.writeText(window.location.origin + link);
-    toast({ title: "Copied!", description: "Gallery link copied to clipboard" });
+    toast({ title: "Copied!", description: "Gallery link copied to clipboard." });
   };
 
   return (
@@ -33,122 +41,167 @@ export default function ClientRecords() {
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-display font-bold tracking-tight">Client Records</h1>
             <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold border border-primary/20">
-              {clients?.length || 0} Total
+              {clients?.length ?? 0} Total
             </span>
           </div>
-          <p className="text-muted-foreground mt-1">Manage client details, galleries, and invoices.</p>
+          <p className="text-muted-foreground mt-1">Manage clients, upload photos, and track order statuses.</p>
         </div>
-        <Button onClick={() => setLocation("/staff/clients/new")} size="lg" className="shadow-md hover-elevate">
-          New Client
+        <Button onClick={() => setLocation("/staff/clients/new")} size="lg" className="shadow-md gap-2">
+          + New Client
         </Button>
       </div>
 
       <Card className="border-border/60 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-border/50 bg-slate-50/50 flex items-center gap-4">
-          <div className="relative w-full sm:max-w-md">
+        {/* Filters bar */}
+        <div className="p-4 border-b border-border/50 bg-slate-50/50 flex flex-col sm:flex-row gap-3 items-center">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by client name or invoice ID..." 
+            <Input
+              placeholder="Search client, invoice, phone..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-white border-border/60"
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 bg-white border-border/60 h-9"
             />
           </div>
+          <div className="flex gap-2 items-center text-sm text-muted-foreground ml-0 sm:ml-auto">
+            <SlidersHorizontal className="w-4 h-4 shrink-0" />
+            <Select value={filterPayment} onValueChange={setFilterPayment}>
+              <SelectTrigger className="h-9 w-[140px] bg-white text-sm">
+                <SelectValue placeholder="Payment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Payments</SelectItem>
+                <SelectItem value="Paid">Paid</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterOrder} onValueChange={setFilterOrder}>
+              <SelectTrigger className="h-9 w-[140px] bg-white text-sm">
+                <SelectValue placeholder="Order Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Statuses</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Editing">Editing</SelectItem>
+                <SelectItem value="Ready">Ready</SelectItem>
+                <SelectItem value="Delivered">Delivered</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        
+
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-slate-50/50 sticky top-0 z-10 shadow-sm">
-              <TableRow className="hover:bg-slate-50/50 border-b border-border/40">
-                <TableHead className="py-4 pl-6 font-semibold">Client</TableHead>
-                <TableHead className="font-semibold">Deliverable</TableHead>
+              <TableRow className="hover:bg-transparent border-b border-border/40">
+                <TableHead className="py-3.5 pl-6 font-semibold">Client</TableHead>
+                <TableHead className="font-semibold">Price</TableHead>
+                <TableHead className="font-semibold">Format</TableHead>
                 <TableHead className="font-semibold">Payment</TableHead>
+                <TableHead className="font-semibold">Order Status</TableHead>
+                <TableHead className="font-semibold">Upload</TableHead>
                 <TableHead className="font-semibold">Date</TableHead>
-                <TableHead className="text-right pr-6 font-semibold">Quick Actions</TableHead>
+                <TableHead className="text-right pr-6 font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/40">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                    <div className="flex flex-col items-center justify-center space-y-3">
-                      <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                       <p>Loading records...</p>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredClients?.length === 0 ? (
+              ) : filtered?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-16">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                  <TableCell colSpan={8} className="text-center py-16">
+                    <div className="flex flex-col items-center text-muted-foreground">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                         <Users className="w-8 h-8 text-slate-400" />
                       </div>
-                      <h3 className="text-lg font-medium text-foreground mb-1">No clients found</h3>
-                      <p className="max-w-sm mb-4">We couldn't find any clients matching your current search criteria.</p>
-                      <Button variant="outline" onClick={() => setSearch("")} className="bg-white">Clear Search</Button>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">No clients found</h3>
+                      <p className="text-sm mb-4">Try adjusting your search or filters.</p>
+                      <Button variant="outline" onClick={() => { setSearch(""); setFilterPayment("All"); setFilterOrder("All"); }} className="bg-white">
+                        Clear Filters
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredClients?.map((client, index) => (
-                  <TableRow key={client.id} className={`group hover:bg-slate-50/80 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
+                filtered?.map((client, index) => (
+                  <TableRow
+                    key={client.id}
+                    className={`group hover:bg-slate-50/80 transition-colors cursor-pointer ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}
+                    onClick={() => setLocation(`/staff/clients/${client.id}`)}
+                  >
                     <TableCell className="pl-6 py-4">
-                      <div className="font-semibold text-foreground text-base">{client.clientName}</div>
-                      <div className="text-sm text-muted-foreground mt-0.5"><span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-xs">{client.invoiceId}</span> • {client.photos.length} photos</div>
+                      <p className="font-semibold text-foreground">{client.clientName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{client.phone} · <span className="font-mono">{client.invoiceId}</span></p>
                     </TableCell>
+                    <TableCell className="font-semibold text-foreground">${client.price.toLocaleString()}</TableCell>
+                    <TableCell><StatusBadge status={client.photoFormat} /></TableCell>
+                    <TableCell><StatusBadge status={client.paymentStatus} /></TableCell>
+                    <TableCell><StatusBadge status={client.orderStatus} /></TableCell>
                     <TableCell>
-                      <StatusBadge status={client.photoStatus} />
+                      {client.photos.length > 0 ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {client.photos.length} photos
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
+                          No photos
+                        </span>
+                      )}
                     </TableCell>
-                    <TableCell>
-                      <StatusBadge status={client.paymentStatus} />
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(client.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm font-medium">
-                      {new Date(client.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
+                    <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                       <TooltipProvider>
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1.5">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-9 w-9 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-full border border-transparent hover:border-primary/20"
-                                onClick={() => window.open(client.galleryLink, '_blank')}
-                              >
-                                <ImageIcon className="w-4 h-4" />
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-lg"
+                                onClick={() => setLocation(`/staff/clients/${client.id}`)}>
+                                <Eye className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>View Gallery</TooltipContent>
+                            <TooltipContent>View Client</TooltipContent>
                           </Tooltip>
-                          
+
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-9 w-9 text-slate-500 hover:text-emerald-600 hover:bg-emerald-100 rounded-full border border-transparent hover:border-emerald-200/50"
-                                onClick={() => copyLink(client.galleryLink)}
-                              >
-                                <LinkIcon className="w-4 h-4" />
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-100 rounded-lg"
+                                onClick={() => setLocation(`/staff/clients/${client.id}/upload`)}>
+                                <UploadCloud className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Copy Link</TooltipContent>
+                            <TooltipContent>Upload Photos</TooltipContent>
                           </Tooltip>
-                          
+
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-9 w-9 text-slate-500 hover:text-violet-600 hover:bg-violet-100 rounded-full border border-transparent hover:border-violet-200/50"
-                                onClick={() => setLocation(`/staff/clients/${client.id}/invoice`)}
-                              >
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-violet-600 hover:bg-violet-100 rounded-lg"
+                                onClick={() => setLocation(`/staff/clients/${client.id}/invoice`)}>
                                 <FileText className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>View Invoice</TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon"
+                                className={`h-8 w-8 rounded-lg ${client.photos.length > 0 ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-100' : 'text-slate-300 cursor-not-allowed'}`}
+                                disabled={client.photos.length === 0}
+                                onClick={() => copyLink(client.galleryLink)}>
+                                <LinkIcon className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{client.photos.length > 0 ? "Copy Gallery Link" : "No gallery yet"}</TooltipContent>
                           </Tooltip>
                         </div>
                       </TooltipProvider>
