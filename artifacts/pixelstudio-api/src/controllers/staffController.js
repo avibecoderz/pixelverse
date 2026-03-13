@@ -41,17 +41,21 @@ const STAFF_SELECT = {
 
 /**
  * Parse `isActive` from a request body safely.
- * Handles boolean true/false, strings "true"/"false", and undefined.
- * Returns true if the value is truthy but not explicitly false.
+ * Handles boolean true/false, strings "true"/"false", JSON null, and undefined.
+ * Returns null when the value is absent so callers can distinguish
+ * "not provided" from "explicitly set to false".
  *
  * Examples:
- *   parseIsActive(true)    → true
- *   parseIsActive("false") → false   ← handles string from form submissions
- *   parseIsActive(false)   → false
- *   parseIsActive(undefined) → null  ← caller decides the default
+ *   parseIsActive(true)      → true
+ *   parseIsActive("true")    → true
+ *   parseIsActive(false)     → false
+ *   parseIsActive("false")   → false   ← handles string from form/query
+ *   parseIsActive(0)         → false
+ *   parseIsActive(undefined) → null    ← field was not sent at all
+ *   parseIsActive(null)      → null    ← JSON null also means "not provided"
  */
 const parseIsActive = (value) => {
-  if (value === undefined) return null;
+  if (value === undefined || value === null) return null;      // absent → null
   if (value === false || value === "false" || value === 0) return false;
   return true;
 };
@@ -217,13 +221,20 @@ const updateStaff = async (req, res, next) => {
     if (phone) updateData.phone = phone;
 
     if (email) {
-      email = email.toLowerCase(); // normalise email
+      email = email.toLowerCase(); // normalise email before storing
 
-      // If email is changing, make sure the new one isn't taken by another user
-      if (email !== existing.email) {
-        const conflict = await prisma.user.findUnique({ where: { email } });
-        if (conflict) return error(res, "This email is already in use by another user", 409);
-      }
+      // Check whether this email belongs to a DIFFERENT user.
+      // We use findFirst with NOT: { id: staffId } so the current user is never
+      // flagged as a conflict when the admin re-submits the same email address.
+      // (findUnique was wrong here — it would find the current user themselves.)
+      const conflict = await prisma.user.findFirst({
+        where: {
+          email,
+          NOT: { id: staffId },
+        },
+      });
+      if (conflict) return error(res, "This email is already in use by another user", 409);
+
       updateData.email = email;
     }
 
@@ -309,16 +320,38 @@ const deleteStaff = async (req, res, next) => {
     });
     if (!existing) return error(res, "Staff member not found", 404);
 
-    // Count linked client records before attempting the delete.
-    // Giving a clear count in the error is more helpful than letting Prisma
-    // throw a foreign key constraint error.
-    const clientCount = await prisma.client.count({
-      where: { createdById: staffId },
-    });
-    if (clientCount > 0) {
+    // ── Check ALL FK restrictions in parallel before touching the DB ──────────
+    // The schema has onDelete: Restrict on FOUR columns that point to User:
+    //   clients.createdById    — clients this staff member created
+    //   galleries.uploadedById — galleries where this staff uploaded photos
+    //                            (may differ from the client's creator)
+    //   invoices.createdById   — invoices this staff member issued
+    //   payments.receivedById  — payments this staff member recorded
+    //
+    // If we only check clients and the staff has galleries/invoices/payments
+    // from working on other staff's clients, Prisma throws an unhandled
+    // foreign key constraint error. We precheck all four and return a clear
+    // human-readable message instead.
+    const [clientCount, galleryCount, invoiceCount, paymentCount] = await Promise.all([
+      prisma.client.count({  where: { createdById:  staffId } }),
+      prisma.gallery.count({ where: { uploadedById: staffId } }),
+      prisma.invoice.count({ where: { createdById:  staffId } }),
+      prisma.payment.count({ where: { receivedById: staffId } }),
+    ]);
+
+    const total = clientCount + galleryCount + invoiceCount + paymentCount;
+
+    if (total > 0) {
+      // Build a specific list of what's blocking the delete
+      const parts = [];
+      if (clientCount  > 0) parts.push(`${clientCount} client record(s)`);
+      if (galleryCount > 0) parts.push(`${galleryCount} gallery upload(s)`);
+      if (invoiceCount > 0) parts.push(`${invoiceCount} invoice(s)`);
+      if (paymentCount > 0) parts.push(`${paymentCount} payment record(s)`);
+
       return error(
         res,
-        `Cannot delete ${existing.name}: they have ${clientCount} client record(s). Delete or reassign those clients first.`,
+        `Cannot delete ${existing.name}: they are linked to ${parts.join(", ")}. Remove or reassign these records first.`,
         409
       );
     }
