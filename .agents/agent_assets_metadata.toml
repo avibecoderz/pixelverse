@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "EsIjm__zqN5j98pTlvjpD"
+uri = "file://.canvas/assets/pixelstudio-source.tar.gz"
+type = "unspecified"
+title = "PixelStudio Source Code"
