@@ -1,5 +1,43 @@
 // In-memory database to simulate a backend for PixelStudio
 
+// ─── Admin Account (localStorage-backed so changes persist) ──────────────────
+export interface AdminAccount {
+  username: string;
+  password: string;
+  name: string;
+  email: string;
+}
+
+const ADMIN_KEY = 'pixelstudio_admin_account';
+const DEFAULT_ADMIN: AdminAccount = {
+  username: 'admin01',
+  password: 'admin123',
+  name: 'Ngozi Adeyemi',
+  email: 'ngozi@pixelstudio.ng',
+};
+
+export const adminAccountApi = {
+  get: (): AdminAccount => {
+    try {
+      const stored = localStorage.getItem(ADMIN_KEY);
+      return stored ? { ...DEFAULT_ADMIN, ...JSON.parse(stored) } : DEFAULT_ADMIN;
+    } catch { return DEFAULT_ADMIN; }
+  },
+  update: (updates: Partial<AdminAccount>): AdminAccount => {
+    const current = adminAccountApi.get();
+    const updated = { ...current, ...updates };
+    localStorage.setItem(ADMIN_KEY, JSON.stringify(updated));
+    return updated;
+  },
+  validate: (username: string, password: string): AdminAccount | null => {
+    const a = adminAccountApi.get();
+    return (a.username === username && a.password === password) ? a : null;
+  },
+  validateEmail: (email: string): boolean => {
+    return adminAccountApi.get().email.toLowerCase() === email.trim().toLowerCase();
+  },
+};
+
 export interface Staff {
   id: string;
   name: string;

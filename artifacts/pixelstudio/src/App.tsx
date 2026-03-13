@@ -15,6 +15,7 @@ import ClientDetail from "@/pages/client-detail";
 import UploadPhotos from "@/pages/upload-photos";
 import InvoicePreview from "@/pages/invoice-preview";
 import ClientGallery from "@/pages/client-gallery";
+import AdminSettings from "@/pages/admin-settings";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -40,6 +41,9 @@ function Router() {
       </Route>
       <Route path="/admin/payments">
         <AppLayout><AllPayments /></AppLayout>
+      </Route>
+      <Route path="/admin/settings">
+        <AppLayout><AdminSettings /></AppLayout>
       </Route>
 
       {/* Staff — specific routes before parameterised ones */}

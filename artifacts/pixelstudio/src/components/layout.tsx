@@ -9,7 +9,7 @@ import {
   LogOut,
   Camera,
   Bell,
-  MoreVertical,
+  Settings,
   ChevronRight
 } from "lucide-react";
 import { 
@@ -49,6 +49,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
     { title: "Manage Staff", url: "/admin/staff", icon: Users },
     { title: "All Payments", url: "/admin/payments", icon: CreditCard },
+    { title: "Settings", url: "/admin/settings", icon: Settings },
   ];
 
   const staffNav = [
