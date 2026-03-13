@@ -115,19 +115,22 @@ const uploadPhotos = async (req, res, next) => {
     }
 
     // ── Find or create the Gallery ────────────────────────────────────────────
-    // The gallery token is pre-generated when the client record is created
-    // (client.galleryToken) so both rows always share the same token.
-    let gallery = await prisma.gallery.findUnique({ where: { clientId } });
-
-    if (!gallery) {
-      gallery = await prisma.gallery.create({
-        data: {
-          token:        client.galleryToken, // mirrors client.galleryToken exactly
-          clientId,
-          uploadedById: req.user.id,         // the staff member uploading
-        },
-      });
-    }
+    // The gallery token is pre-generated on the client record (client.galleryToken)
+    // so both rows always share the same token value.
+    //
+    // We use upsert instead of findUnique + create to avoid a race condition:
+    // if two uploads for the same client arrive simultaneously, both could see
+    // gallery = null and both attempt create, causing a unique constraint crash
+    // on clientId. upsert is atomic — only one row is ever created.
+    const gallery = await prisma.gallery.upsert({
+      where:  { clientId },
+      create: {
+        token:        client.galleryToken,
+        clientId,
+        uploadedById: req.user.id,
+      },
+      update: {}, // gallery already exists — nothing to change
+    });
 
     // ── Insert Photo records ──────────────────────────────────────────────────
     // We use $transaction with individual create calls (not createMany) because
