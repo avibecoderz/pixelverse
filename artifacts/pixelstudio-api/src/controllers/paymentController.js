@@ -1,33 +1,35 @@
 /**
  * paymentController.js — Payment Logic
  *
- * Admin views all payments. Staff views and records payments for their own clients.
- * FIX: Added client existence check before updating to prevent Prisma crashes.
+ * Uses the real `payments` table from the schema (prisma.payment).
+ * Previous version incorrectly queried the clients table as a payment summary.
+ *
+ * Schema changes reflected here:
+ *   prisma.client.findMany() → prisma.payment.findMany()
+ *   staffId                  → client.createdById
+ *   staff relation           → client.createdBy
+ *   invoice.paidAt           → removed (field doesn't exist in new Invoice model)
+ *   invoice.status           → invoice.paymentStatus
  */
 
-const prisma = require("../utils/prismaClient");
+const prisma             = require("../utils/prismaClient");
 const { success, error } = require("../utils/responseUtils");
 
 // ─── GET /api/payments ────────────────────────────────────────────────────────
-// Returns one payment summary row per client record.
-// Admin sees all. Staff sees only their own.
+// Returns all Payment records.
+// Admin sees every payment. Staff sees only payments for their own clients.
 const getAllPayments = async (req, res, next) => {
   try {
+    // Filter through the client relation to limit to this staff member's clients
     const where = req.user.role === "staff"
-      ? { staffId: req.user.id }
+      ? { client: { createdById: req.user.id } }
       : {};
 
-    const payments = await prisma.client.findMany({
+    const payments = await prisma.payment.findMany({
       where,
-      select: {
-        id:            true,
-        clientName:    true,
-        price:         true,
-        paymentStatus: true,
-        orderStatus:   true,
-        invoiceId:     true,
-        createdAt:     true,
-        staff: { select: { name: true } },
+      include: {
+        client:     { select: { clientName: true, phone: true } },
+        receivedBy: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -38,42 +40,78 @@ const getAllPayments = async (req, res, next) => {
   }
 };
 
-// ─── PATCH /api/payments/:clientId ────────────────────────────────────────────
-// Marks a client's payment as PAID and updates the linked invoice (if any).
-// FIX: Now checks if the client exists before attempting update.
-const markAsPaid = async (req, res, next) => {
+// ─── GET /api/payments/:id ────────────────────────────────────────────────────
+// Get a single payment record.
+const getPaymentById = async (req, res, next) => {
   try {
-    const { clientId } = req.params;
-
-    // Verify the client exists
-    const client = await prisma.client.findUnique({ where: { id: clientId } });
-    if (!client) return error(res, "Client not found", 404);
-
-    // Staff can only record payments for their own clients
-    if (req.user.role === "staff" && client.staffId !== req.user.id) {
-      return error(res, "Access denied. This client belongs to a different staff member.", 403);
-    }
-
-    if (client.paymentStatus === "PAID") {
-      return error(res, "This client's payment is already marked as PAID.", 409);
-    }
-
-    // Update the client's payment status
-    const updated = await prisma.client.update({
-      where: { id: clientId },
-      data:  { paymentStatus: "PAID" },
+    const payment = await prisma.payment.findUnique({
+      where:   { id: req.params.id },
+      include: {
+        client:     { select: { clientName: true, createdById: true } },
+        receivedBy: { select: { name: true } },
+      },
     });
 
-    // If an invoice exists for this client, mark it as paid too
-    await prisma.invoice.updateMany({
-      where: { clientId },
-      data:  { status: "PAID", paidAt: new Date() },
-    });
+    if (!payment) return error(res, "Payment not found", 404);
 
-    return success(res, "Payment recorded as Paid", updated);
+    if (req.user.role === "staff" && payment.client.createdById !== req.user.id) {
+      return error(res, "Access denied.", 403);
+    }
+
+    return success(res, "Payment fetched", payment);
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { getAllPayments, markAsPaid };
+// ─── POST /api/payments/:clientId ────────────────────────────────────────────
+// Records a payment for a client. Creates a Payment row in the payments table.
+// Also updates client.paymentStatus and any pending invoices for this client.
+const recordPayment = async (req, res, next) => {
+  try {
+    const { clientId } = req.params;
+    const { amount }   = req.body;
+
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return error(res, "amount must be a positive number", 400);
+    }
+
+    // Verify the client exists
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) return error(res, "Client not found", 404);
+
+    // Ownership check
+    if (req.user.role === "staff" && client.createdById !== req.user.id) {
+      return error(res, "Access denied. This client belongs to a different staff member.", 403);
+    }
+
+    // Create the payment record in the payments table
+    const payment = await prisma.payment.create({
+      data: {
+        amount:      parseFloat(amount),
+        status:      "PAID",
+        clientId,
+        receivedById: req.user.id, // the staff member recording the payment
+      },
+    });
+
+    // Update client.paymentStatus to PAID (marks the overall session as paid)
+    await prisma.client.update({
+      where: { id: clientId },
+      data:  { paymentStatus: "PAID" },
+    });
+
+    // Mark all PENDING invoices for this client as PAID.
+    // Uses updateMany because there can now be multiple invoices per client.
+    await prisma.invoice.updateMany({
+      where: { clientId, paymentStatus: "PENDING" },
+      data:  { paymentStatus: "PAID" },
+    });
+
+    return success(res, "Payment recorded successfully", payment, 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getAllPayments, getPaymentById, recordPayment };

@@ -1,21 +1,23 @@
 /**
  * paymentRoutes.js — Payment Routes
  *
- * Admin can see all payments.
- * Staff can record payments for their own clients.
+ * Uses the real payments table (prisma.payment).
+ * Admin can see all payments. Staff records and views payments for their own clients.
  */
 
-const express = require("express");
-const router = express.Router();
+const express           = require("express");
+const router            = express.Router();
 const paymentController = require("../controllers/paymentController");
 const authMiddleware    = require("../middlewares/authMiddleware");
 
 router.use(authMiddleware);
 
-// GET   /api/payments           → list all payments (admin) or own (staff)
-// PATCH /api/payments/:clientId → mark a client's payment as Paid
+// GET  /api/payments             → list all payment records (admin) or own (staff)
+// GET  /api/payments/:id         → get one payment record
+// POST /api/payments/:clientId   → record a new payment for a client
 
-router.get("/",                paymentController.getAllPayments);
-router.patch("/:clientId",     paymentController.markAsPaid);
+router.get("/",               paymentController.getAllPayments);
+router.get("/:id",            paymentController.getPaymentById);
+router.post("/:clientId",     paymentController.recordPayment);
 
 module.exports = router;

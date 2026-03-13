@@ -1,23 +1,26 @@
 /**
  * invoiceRoutes.js — Invoice Routes
  *
- * Staff can generate and view invoices for their clients.
- * Admin can see all invoices.
+ * One client can have many invoices.
+ * Staff generate and view invoices for their own clients.
+ * Admin can view all invoices.
  */
 
-const express = require("express");
-const router = express.Router();
+const express           = require("express");
+const router            = express.Router();
 const invoiceController = require("../controllers/invoiceController");
 const authMiddleware    = require("../middlewares/authMiddleware");
 
 router.use(authMiddleware);
 
-// GET  /api/invoices           → list all invoices
-// POST /api/invoices/:clientId → generate invoice for a client
-// GET  /api/invoices/:id       → get invoice details
+// GET   /api/invoices                → list invoices (admin all, staff own clients)
+// POST  /api/invoices/:clientId      → generate a new invoice for a client
+// GET   /api/invoices/:id            → get one invoice's full details
+// PATCH /api/invoices/:id/mark-paid  → mark a specific invoice as PAID
 
-router.get("/",              invoiceController.getAllInvoices);
-router.post("/:clientId",    invoiceController.generateInvoice);
-router.get("/:id",           invoiceController.getInvoiceById);
+router.get("/",                    invoiceController.getAllInvoices);
+router.post("/:clientId",          invoiceController.generateInvoice);
+router.get("/:id",                 invoiceController.getInvoiceById);
+router.patch("/:id/mark-paid",     invoiceController.markInvoicePaid);
 
 module.exports = router;
