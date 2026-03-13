@@ -1,14 +1,15 @@
 /**
  * routes/index.js — Route Aggregator
  *
- * This file brings together all route files and mounts them
- * under their own path prefix. Adding a new feature means:
- *   1. Create a new route file (e.g. galleryRoutes.js)
- *   2. Import it here and add router.use("/gallery", galleryRoutes)
+ * Mounts all route groups under /api.
+ * Final URL pattern: /api/<group>/<specific-path>
+ *
+ * Gallery routes are intentionally public (no authMiddleware).
+ * All other route groups apply their own auth inside their own files.
  */
 
 const express = require("express");
-const router = express.Router();
+const router  = express.Router();
 
 const authRoutes    = require("./authRoutes");
 const staffRoutes   = require("./staffRoutes");
@@ -16,14 +17,16 @@ const clientRoutes  = require("./clientRoutes");
 const photoRoutes   = require("./photoRoutes");
 const invoiceRoutes = require("./invoiceRoutes");
 const paymentRoutes = require("./paymentRoutes");
+const galleryRoutes = require("./galleryRoutes");  // PUBLIC — no token needed
 
-// Mount each group of routes
-// Final URL will be: /api/<prefix>/<route-defined-path>
-router.use("/auth",     authRoutes);    // POST /api/auth/login, /api/auth/logout
-router.use("/staff",    staffRoutes);   // GET/POST/PUT/DELETE /api/staff
-router.use("/clients",  clientRoutes);  // GET/POST/PUT/DELETE /api/clients
-router.use("/photos",   photoRoutes);   // POST /api/photos/upload/:clientId
+router.use("/auth",     authRoutes);    // POST  /api/auth/login
+                                        // POST  /api/auth/change-password (protected)
+router.use("/staff",    staffRoutes);   // CRUD  /api/staff (admin only)
+router.use("/clients",  clientRoutes);  // CRUD  /api/clients
+router.use("/photos",   photoRoutes);   // POST  /api/photos/upload/:clientId
+                                        // DELETE /api/photos/:id
 router.use("/invoices", invoiceRoutes); // GET/POST /api/invoices
-router.use("/payments", paymentRoutes); // GET/POST /api/payments
+router.use("/payments", paymentRoutes); // GET/PATCH /api/payments
+router.use("/gallery",  galleryRoutes); // GET  /api/gallery/:token (PUBLIC)
 
 module.exports = router;

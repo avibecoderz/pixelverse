@@ -1,23 +1,32 @@
 /**
  * invoiceController.js — Invoice Logic
  *
- * Staff generate invoices for their clients.
- * One invoice per client.
+ * Staff generate invoices for their own clients.
+ * Admin can view all invoices.
+ * FIX: Added ownership checks to getInvoiceById.
  */
 
 const prisma = require("../utils/prismaClient");
 const { success, error } = require("../utils/responseUtils");
 
-// GET /api/invoices — list all invoices
+// ─── GET /api/invoices ────────────────────────────────────────────────────────
+// Admin sees all invoices. Staff only sees invoices for their own clients.
 const getAllInvoices = async (req, res, next) => {
   try {
-    const where = req.user.role === "staff" ? { client: { staffId: req.user.id } } : {};
+    // Filter by the staff's own clients if the requester is staff
+    const where = req.user.role === "staff"
+      ? { client: { staffId: req.user.id } }
+      : {};
 
     const invoices = await prisma.invoice.findMany({
       where,
       include: {
         client: {
-          select: { clientName: true, phone: true, staff: { select: { name: true } } },
+          select: {
+            clientName: true,
+            phone:      true,
+            staff:      { select: { name: true } },
+          },
         },
       },
       orderBy: { issuedAt: "desc" },
@@ -29,22 +38,34 @@ const getAllInvoices = async (req, res, next) => {
   }
 };
 
-// GET /api/invoices/:id — get one invoice
+// ─── GET /api/invoices/:id ────────────────────────────────────────────────────
+// FIX: Staff can only view invoices that belong to their own clients.
 const getInvoiceById = async (req, res, next) => {
   try {
     const invoice = await prisma.invoice.findUnique({
-      where: { id: req.params.id },
-      include: { client: { include: { staff: { select: { name: true } } } } },
+      where:   { id: req.params.id },
+      include: {
+        client: {
+          include: { staff: { select: { id: true, name: true } } },
+        },
+      },
     });
 
     if (!invoice) return error(res, "Invoice not found", 404);
+
+    // Staff can only view invoices for their own clients
+    if (req.user.role === "staff" && invoice.client.staff.id !== req.user.id) {
+      return error(res, "Access denied. This invoice belongs to another staff member's client.", 403);
+    }
+
     return success(res, "Invoice fetched", invoice);
   } catch (err) {
     next(err);
   }
 };
 
-// POST /api/invoices/:clientId — generate invoice for a client
+// ─── POST /api/invoices/:clientId ─────────────────────────────────────────────
+// Generates an invoice for a client. One invoice per client — duplicates blocked.
 const generateInvoice = async (req, res, next) => {
   try {
     const { clientId } = req.params;
@@ -52,13 +73,20 @@ const generateInvoice = async (req, res, next) => {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) return error(res, "Client not found", 404);
 
-    // Prevent generating a duplicate invoice
+    // Staff can only generate invoices for their own clients
+    if (req.user.role === "staff" && client.staffId !== req.user.id) {
+      return error(res, "Access denied. This client belongs to a different staff member.", 403);
+    }
+
+    // Prevent duplicate invoices
     const existing = await prisma.invoice.findUnique({ where: { clientId } });
-    if (existing) return error(res, "Invoice already exists for this client", 409);
+    if (existing) {
+      return error(res, "An invoice already exists for this client. Use GET /api/invoices/:id to view it.", 409);
+    }
 
     const invoice = await prisma.invoice.create({
       data: {
-        invoiceNo: client.invoiceId,
+        invoiceNo: client.invoiceId,   // e.g. "INV-0001"
         amount:    client.price,
         status:    client.paymentStatus,
         clientId,
