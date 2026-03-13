@@ -28,7 +28,7 @@ app.use(
 );
 
 // ─── Body Parsers ─────────────────────────────────────────────────────────────
-// Parse incoming JSON bodies (e.g. { "username": "admin01", "password": "..." })
+// Parse incoming JSON bodies (e.g. { "email": "admin@pixelstudio.ng", "password": "..." })
 app.use(express.json());
 
 // Parse URL-encoded form data (e.g. HTML form submissions)

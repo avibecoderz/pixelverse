@@ -19,8 +19,9 @@ const invoiceRoutes = require("./invoiceRoutes");
 const paymentRoutes = require("./paymentRoutes");
 const galleryRoutes = require("./galleryRoutes");  // PUBLIC — no token needed
 
-router.use("/auth",     authRoutes);    // POST  /api/auth/login
-                                        // POST  /api/auth/change-password (protected)
+router.use("/auth",     authRoutes);    // POST /api/auth/login
+                                        // GET  /api/auth/me               (protected)
+                                        // POST /api/auth/change-password  (protected)
 router.use("/staff",    staffRoutes);   // CRUD  /api/staff (admin only)
 router.use("/clients",  clientRoutes);  // CRUD  /api/clients
 router.use("/photos",   photoRoutes);   // POST  /api/photos/upload/:clientId

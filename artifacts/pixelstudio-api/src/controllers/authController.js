@@ -32,16 +32,21 @@ const toDbRole = (role) => {
 };
 
 /**
- * Safe user shape to return in responses.
- * NEVER include the hashed password in any API response.
+ * Safe user shape to return in all responses.
+ * NEVER include the hashed password — only named fields are returned.
+ *
+ * role: Prisma stores uppercase enums ("ADMIN"/"STAFF"). We always
+ *       return lowercase to the frontend ("admin"/"staff").
+ * createdAt: included so the dashboard can show "Member since" info.
  */
-const formatUser = (user, roleOverride) => ({
-  id:       user.id,
-  name:     user.name,
-  email:    user.email,
-  phone:    user.phone,
-  role:     roleOverride || user.role.toLowerCase(), // always lowercase for the frontend
-  isActive: user.isActive,
+const formatUser = (user) => ({
+  id:        user.id,
+  name:      user.name,
+  email:     user.email,
+  phone:     user.phone,
+  role:      user.role.toLowerCase(), // "ADMIN" → "admin", "STAFF" → "staff"
+  isActive:  user.isActive,
+  createdAt: user.createdAt || null,
 });
 
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────
@@ -106,7 +111,7 @@ const login = async (req, res, next) => {
 
     return success(res, "Login successful", {
       token,
-      user: formatUser(user, role),
+      user: formatUser(user), // formatUser reads role from user.role (DB value)
     });
   } catch (err) {
     next(err);
@@ -126,10 +131,14 @@ const login = async (req, res, next) => {
  */
 const getMe = async (req, res, next) => {
   try {
-    // req.user is set by authMiddleware — contains { id, role } from the JWT
-    const { id, role } = req.user;
+    // req.user is set by authMiddleware — contains { id, role } decoded from the JWT.
+    // We use only `id` here; the role is re-read from the database below so that
+    // any admin changes to the account are reflected immediately without re-login.
+    const { id } = req.user;
 
-    // Fetch the live record from the database
+    // Fetch the live record from the database.
+    // Explicitly selecting fields keeps the password out of the result object —
+    // safer than fetching everything and filtering later.
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -137,24 +146,26 @@ const getMe = async (req, res, next) => {
         name:      true,
         email:     true,
         phone:     true,
-        role:      true,
+        role:      true,      // returned as DB enum: "ADMIN" or "STAFF"
         isActive:  true,
         createdAt: true,
-        // password is intentionally excluded
+        // password is intentionally excluded from this select
       },
     });
 
     if (!user) {
-      // The token was valid but the user was deleted after it was issued
+      // Token was valid but the account was deleted after it was issued
       return error(res, "User account no longer exists. Please log in again.", 401);
     }
 
     if (!user.isActive) {
-      // The account was deactivated after the token was issued
+      // Account was deactivated after the token was issued
       return error(res, "Your account has been deactivated. Contact the admin.", 403);
     }
 
-    return success(res, "User profile fetched", formatUser(user, role));
+    // formatUser converts role to lowercase and excludes the password.
+    // The DB is the authoritative source — no JWT values are used here.
+    return success(res, "User profile fetched", formatUser(user));
   } catch (err) {
     next(err);
   }
@@ -174,13 +185,17 @@ const changePassword = async (req, res, next) => {
     const { id } = req.user; // from authMiddleware
 
     // ── Validate input ────────────────────────────────────────────────────────
-    if (!currentPassword || !newPassword) {
+    // Trim first so a string of only spaces does not pass the presence check
+    const currentTrimmed = (currentPassword || "").trim();
+    const newTrimmed     = (newPassword     || "").trim();
+
+    if (!currentTrimmed || !newTrimmed) {
       return error(res, "currentPassword and newPassword are required", 400);
     }
-    if (newPassword.length < 6) {
+    if (newTrimmed.length < 6) {
       return error(res, "New password must be at least 6 characters", 400);
     }
-    if (currentPassword === newPassword) {
+    if (currentTrimmed === newTrimmed) {
       return error(res, "New password must be different from the current password", 400);
     }
 
