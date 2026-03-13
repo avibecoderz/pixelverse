@@ -209,7 +209,7 @@ export default function ManageStaff() {
                 </TableRow>
               ) : (
                 filtered?.map((member, index) => (
-                  <TableRow key={member.id} className={`group hover:bg-slate-50/80 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
+                  <TableRow key={member.id} className={`hover:bg-slate-50/80 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
                     <TableCell className="pl-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm border shrink-0
@@ -241,7 +241,7 @@ export default function ManageStaff() {
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       <TooltipProvider>
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" onClick={() => openEdit(member)} className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-lg">
