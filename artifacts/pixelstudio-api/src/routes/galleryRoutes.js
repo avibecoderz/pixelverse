@@ -1,24 +1,24 @@
 /**
- * galleryRoutes.js — Public Gallery Routes (No Auth Required)
+ * galleryRoutes.js — Public Gallery Routes (No Authentication Required)
  *
- * These routes are intentionally public — they are used by clients
- * to view and download their photos via a unique share link.
- *
- * The token in the URL was generated when the client record was created.
- * It is unguessable (32 random hex characters), so only the intended
- * recipient can access the gallery.
+ * This file is intentionally public — no authMiddleware is applied here.
+ * The gallery token acts as the credential. It is a 32-character
+ * cryptographically random hex string, making it unguessable.
  *
  * Mounted at /api/gallery in routes/index.js
+ *
+ * Endpoints:
+ *   GET /api/gallery/:token
+ *     → 400 if the token format is invalid
+ *     → 404 if no gallery matches the token
+ *     → 403 with client name + status if photos are not ready yet (PENDING/EDITING)
+ *     → 200 with full photo list if the order is READY or DELIVERED
  */
 
-const express          = require("express");
-const router           = express.Router();
-const clientController = require("../controllers/clientController");
+const express           = require("express");
+const router            = express.Router();
+const galleryController = require("../controllers/galleryController");
 
-// GET /api/gallery/:token
-// → Returns the client's name, order status, and list of photo URLs
-// → Returns 404 if the token is invalid
-// → Returns 403 if photos are not yet ready
-router.get("/:token", clientController.getGalleryByToken);
+router.get("/:token", galleryController.getGalleryByToken);
 
 module.exports = router;

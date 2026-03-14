@@ -372,68 +372,10 @@ const deleteClient = async (req, res, next) => {
   }
 };
 
-// ─── GET /api/gallery/:token ──────────────────────────────────────────────────
-/**
- * PUBLIC endpoint — no authentication required.
- * This is the link the studio sends to the customer as their photo delivery URL.
- *
- * Looks up the Gallery by its unique token and returns the photos inside.
- * Returns 403 if the order is still PENDING or EDITING — not ready for the client.
- *
- * Mounted at: GET /api/gallery/:token (via galleryRoutes.js — no authMiddleware)
- */
-const getGalleryByToken = async (req, res, next) => {
-  try {
-    const gallery = await prisma.gallery.findUnique({
-      where: { token: req.params.token },
-      include: {
-        client: {
-          select: {
-            clientName:  true,
-            orderStatus: true,
-            createdBy:   { select: { name: true } },
-          },
-        },
-        photos: {
-          select:  { id: true, imageUrl: true, fileName: true, createdAt: true },
-          orderBy: { createdAt: "asc" },
-        },
-      },
-    });
-
-    if (!gallery) {
-      return error(res, "Gallery not found. The link may be invalid or expired.", 404);
-    }
-
-    const { orderStatus } = gallery.client;
-
-    // Block access while editing is still in progress
-    if (orderStatus === "PENDING" || orderStatus === "EDITING") {
-      return error(
-        res,
-        "Your photos are not ready yet. We will notify you when they are available.",
-        403
-      );
-    }
-
-    return success(res, "Gallery loaded", {
-      galleryId:        gallery.id,
-      clientName:       gallery.client.clientName,
-      photographerName: gallery.client.createdBy.name,
-      orderStatus,
-      photoCount:       gallery.photos.length,
-      photos:           gallery.photos,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 module.exports = {
   getAllClients,
   getClientById,
   createClient,
   updateClient,
   deleteClient,
-  getGalleryByToken,
 };
