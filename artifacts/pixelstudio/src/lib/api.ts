@@ -37,6 +37,37 @@ if (!BASE_URL) {
 
 const TOKEN_KEY = "ps_token";
 
+// ─── Image URL helper ─────────────────────────────────────────────────────────
+
+/**
+ * Convert a relative imageUrl from the API into a full URL the browser can load.
+ *
+ * The backend stores imageUrl as a relative path, e.g. "/uploads/photo-123.jpg".
+ * This is intentional — it keeps the database storage-agnostic.
+ * The frontend must prepend the API base URL to get a usable src for <img> tags
+ * or href for download links.
+ *
+ * Usage:
+ *   <img src={getImageUrl(photo.imageUrl)} alt={photo.fileName} />
+ *
+ *   <a href={getImageUrl(photo.imageUrl)} download={photo.fileName}>
+ *     Download
+ *   </a>
+ *
+ * The function trims any accidental double-slashes between BASE_URL and the path.
+ */
+export function getImageUrl(imageUrl: string): string {
+  if (!imageUrl) return "";
+  // If the URL is already absolute (starts with http:// or https://), return as-is.
+  // This makes the function safe to call even after a future Cloudinary migration.
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  const base = BASE_URL.replace(/\/$/, "");   // strip trailing slash from base
+  const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
+  return `${base}${path}`;
+}
+
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
 /** Save the JWT to localStorage after a successful login. */
