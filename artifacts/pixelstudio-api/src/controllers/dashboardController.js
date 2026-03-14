@@ -28,8 +28,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-const prisma             = require("../utils/prismaClient");
-const { success, error } = require("../utils/responseUtils");
+const prisma          = require("../utils/prismaClient");
+const { success }     = require("../utils/responseUtils");
 
 // ─── Shared select shape for a client in a recent-activity list ───────────────
 // Lightweight — just enough for the frontend to render a row.
