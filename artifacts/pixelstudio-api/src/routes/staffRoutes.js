@@ -32,6 +32,7 @@ const router  = express.Router();
 const staffController = require("../controllers/staffController");
 const authMiddleware  = require("../middlewares/authMiddleware");
 const roleMiddleware  = require("../middlewares/roleMiddleware");
+const { createStaffRules, changeStaffPasswordRules } = require("../validators/staffValidator");
 
 // Apply both guards to every route in this file.
 // Any request without a valid admin JWT token is rejected before reaching the handlers.
@@ -43,14 +44,14 @@ router.use(roleMiddleware("admin"));
 // GET  /api/staff       → returns all staff (optional ?active=true/false filter)
 // POST /api/staff       → creates a new staff member
 router.get("/",  staffController.getAllStaff);
-router.post("/", staffController.createStaff);
+router.post("/", createStaffRules, staffController.createStaff);
 
 // ─── Sub-resource routes (declare BEFORE /:id to avoid wildcard conflicts) ───
 
 // PATCH /api/staff/:id/status   → activate or deactivate a staff account
 // PATCH /api/staff/:id/password → admin resets a staff password (no old password needed)
 router.patch("/:id/status",   staffController.updateStaffStatus);
-router.patch("/:id/password", staffController.changeStaffPassword);
+router.patch("/:id/password", changeStaffPasswordRules, staffController.changeStaffPassword);
 
 // ─── Member routes ────────────────────────────────────────────────────────────
 

@@ -19,6 +19,7 @@ const express        = require("express");
 const router         = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { loginRules, changePasswordRules } = require("../validators/authValidator");
 
 // ─── Public routes (no token needed) ─────────────────────────────────────────
 
@@ -48,7 +49,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
  *   400 — missing fields or invalid role
  *   401 — wrong email or password
  */
-router.post("/login", authController.login);
+router.post("/login", loginRules, authController.login);
 
 // ─── Protected routes (Bearer token required) ─────────────────────────────────
 
@@ -96,6 +97,6 @@ router.get("/me", authMiddleware, authController.getMe);
  *   400 — missing fields, too short, or same as current
  *   401 — wrong current password
  */
-router.post("/change-password", authMiddleware, authController.changePassword);
+router.post("/change-password", authMiddleware, changePasswordRules, authController.changePassword);
 
 module.exports = router;

@@ -30,13 +30,14 @@ const clientController = require("../controllers/clientController");
 const photoController  = require("../controllers/photoController");
 const authMiddleware   = require("../middlewares/authMiddleware");
 const { upload }       = require("../utils/uploadUtils");
+const { createClientRules } = require("../validators/clientValidator");
 
 // Every route in this file requires a valid token
 router.use(authMiddleware);
 
 // ─── Client CRUD ──────────────────────────────────────────────────────────────
-router.get("/",    clientController.getAllClients);   // list (admin: all, staff: own)
-router.post("/",   clientController.createClient);    // create new client record
+router.get("/",    clientController.getAllClients);                      // list (admin: all, staff: own)
+router.post("/",   createClientRules, clientController.createClient);   // create new client record
 
 // Specific sub-resource routes must be declared BEFORE the /:id wildcard
 // so Express does not treat "photos" as a client ID.

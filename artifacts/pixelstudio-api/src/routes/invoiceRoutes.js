@@ -10,6 +10,7 @@ const express           = require("express");
 const router            = express.Router();
 const invoiceController = require("../controllers/invoiceController");
 const authMiddleware    = require("../middlewares/authMiddleware");
+const { generateInvoiceRules } = require("../validators/invoiceValidator");
 
 router.use(authMiddleware);
 
@@ -19,7 +20,7 @@ router.use(authMiddleware);
 // PATCH /api/invoices/:id/mark-paid  → mark a specific invoice as PAID
 
 router.get("/",                    invoiceController.getAllInvoices);
-router.post("/:clientId",          invoiceController.generateInvoice);
+router.post("/:clientId",          generateInvoiceRules, invoiceController.generateInvoice);
 router.get("/:id",                 invoiceController.getInvoiceById);
 router.patch("/:id/mark-paid",     invoiceController.markInvoicePaid);
 

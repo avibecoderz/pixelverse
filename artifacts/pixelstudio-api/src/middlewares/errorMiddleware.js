@@ -123,6 +123,30 @@ const errorMiddleware = (err, req, res, next) => { // eslint-disable-line no-unu
     });
   }
 
+  // ── Prisma: foreign key constraint violation (Restrict) ───────────────────
+  // Raised when a delete or update is blocked because another table still
+  // holds a reference to the record being changed.
+  // e.g. trying to delete a staff member who still has linked payments
+  // that were not caught by the pre-check in staffController.
+  if (err.code === "P2003") {
+    const field = err.meta?.field_name || "a related record";
+    return res.status(409).json({
+      success: false,
+      message: `Cannot complete this action: ${field} is still referenced by other records. Remove the linked records first.`,
+    });
+  }
+
+  // ── Prisma: null constraint violation ─────────────────────────────────────
+  // Raised when a non-nullable column receives null — e.g. a required field
+  // was omitted from a create/update call that bypassed the validate middleware.
+  if (err.code === "P2011") {
+    const field = err.meta?.constraint || "a required field";
+    return res.status(400).json({
+      success: false,
+      message: `${field} is required and cannot be null`,
+    });
+  }
+
   // ── Fallback: generic server error ────────────────────────────────────────
   const statusCode = err.statusCode || err.status || 500;
   const message    = err.message    || "Internal Server Error";

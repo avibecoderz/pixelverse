@@ -9,6 +9,7 @@ const express           = require("express");
 const router            = express.Router();
 const paymentController = require("../controllers/paymentController");
 const authMiddleware    = require("../middlewares/authMiddleware");
+const { recordPaymentRules } = require("../validators/paymentValidator");
 
 router.use(authMiddleware);
 
@@ -18,6 +19,6 @@ router.use(authMiddleware);
 
 router.get("/",               paymentController.getAllPayments);
 router.get("/:id",            paymentController.getPaymentById);
-router.post("/:clientId",     paymentController.recordPayment);
+router.post("/:clientId",     recordPaymentRules, paymentController.recordPayment);
 
 module.exports = router;
