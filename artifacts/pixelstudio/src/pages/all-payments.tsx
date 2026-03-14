@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePayments } from "@/hooks/use-data";
+import { usePayments, useClients } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,10 +10,14 @@ import { StatCard } from "@/components/stat-card";
 
 export default function AllPayments() {
   const { data: payments, isLoading } = usePayments();
+  const { data: clients } = useClients();
   const [filter, setFilter] = useState("All");
 
   const totalRevenue = payments?.filter(p => p.paymentStatus === 'Paid').reduce((sum, p) => sum + p.amount, 0) || 0;
-  const pendingRevenue = payments?.filter(p => p.paymentStatus === 'Pending').reduce((sum, p) => sum + p.amount, 0) || 0;
+  // Pending collection = sum of prices from clients who haven't paid yet.
+  // Payment records are always stored as PAID when recorded, so pending is
+  // tracked on the client's paymentStatus field, not on payment records.
+  const pendingRevenue = clients?.filter(c => c.paymentStatus === 'Pending').reduce((sum, c) => sum + c.price, 0) || 0;
   
   const filteredPayments = payments?.filter(p => filter === "All" || p.paymentStatus === filter);
 

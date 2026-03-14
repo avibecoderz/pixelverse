@@ -54,6 +54,12 @@ export type AppClient = {
   notes:         string;
   /** Full image URLs (from gallery.photos on detail view; empty on list view). */
   photos:        string[];
+  /**
+   * Accurate photo count: uses photos.length on detail view (where actual
+   * photo URLs are included), or _count.photos from the list endpoint.
+   * Always use photoCount instead of photos.length on list-view pages.
+   */
+  photoCount:    number;
   /** First invoice's invoiceNumber, or "" if no invoice yet. */
   invoiceId:     string;
   /** Frontend gallery route: /gallery/<galleryToken> */
@@ -119,6 +125,10 @@ function adaptClient(raw: any): AppClient {
     ? raw.gallery.photos.map((p: { imageUrl: string }) => getImageUrl(p.imageUrl))
     : [];
 
+  // Use the actual array length when photos are loaded (detail view).
+  // Fall back to _count.photos from the list endpoint so stats are always accurate.
+  const photoCount = photos.length > 0 ? photos.length : (raw._count?.photos ?? 0);
+
   return {
     id:            raw.id,
     clientName:    raw.clientName,
@@ -129,6 +139,7 @@ function adaptClient(raw: any): AppClient {
     orderStatus:   ORDER_STATUS[raw.orderStatus]   ?? "Pending",
     notes:         raw.notes ?? "",
     photos,
+    photoCount,
     invoiceId:     raw.invoices?.[0]?.invoiceNumber ?? "",
     galleryLink:   `/gallery/${raw.galleryToken}`,
     date:          raw.createdAt,

@@ -14,8 +14,9 @@ export default function StaffDashboard() {
 
   const totalRevenue = clients_.filter(c => c.paymentStatus === 'Paid').reduce((s, c) => s + c.price, 0);
   const pendingEditing = clients_.filter(c => c.orderStatus === 'Editing').length;
-  const readyToUpload = clients_.filter(c => c.orderStatus === 'Ready' && c.photos.length === 0).length;
-  const uploadedGalleries = clients_.filter(c => c.photos.length > 0).length;
+  // Use photoCount (accurate from _count.photos on list view) instead of photos.length.
+  const readyToUpload = clients_.filter(c => c.orderStatus === 'Ready' && c.photoCount === 0).length;
+  const uploadedGalleries = clients_.filter(c => c.photoCount > 0).length;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -83,7 +84,7 @@ export default function StaffDashboard() {
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">{client.clientName}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(client.date).toLocaleDateString()} · {client.photos.length} photos</p>
+                        <p className="text-xs text-muted-foreground">{new Date(client.date).toLocaleDateString()} · {client.photoCount} photos</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

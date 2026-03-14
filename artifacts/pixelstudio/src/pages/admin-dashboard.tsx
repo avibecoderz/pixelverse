@@ -14,8 +14,11 @@ export default function AdminDashboard() {
   const userName = localStorage.getItem("user_name") || "Admin";
 
   const totalRevenue = payments?.filter(p => p.paymentStatus === 'Paid').reduce((s, p) => s + p.amount, 0) ?? 0;
-  const pendingPayments = payments?.filter(p => p.paymentStatus === 'Pending').length ?? 0;
-  const uploadedGalleries = clients?.filter(c => c.photos.length > 0).length ?? 0;
+  // Count clients who haven't paid yet (payment records are always PAID when recorded,
+  // so pending is tracked on the client's paymentStatus field, not on payment records).
+  const pendingPayments = clients?.filter(c => c.paymentStatus === 'Pending').length ?? 0;
+  // Use photoCount (populated from _count.photos on list view) so this is always accurate.
+  const uploadedGalleries = clients?.filter(c => c.photoCount > 0).length ?? 0;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

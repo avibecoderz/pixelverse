@@ -145,10 +145,10 @@ export default function ClientRecords() {
                     <TableCell><StatusBadge status={client.paymentStatus} /></TableCell>
                     <TableCell><StatusBadge status={client.orderStatus} /></TableCell>
                     <TableCell>
-                      {client.photos.length > 0 ? (
+                      {client.photoCount > 0 ? (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          {client.photos.length} photos
+                          {client.photoCount} photos
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
@@ -195,13 +195,13 @@ export default function ClientRecords() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button variant="ghost" size="icon"
-                                className={`h-8 w-8 rounded-lg ${client.photos.length > 0 ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-100' : 'text-slate-300 cursor-not-allowed'}`}
-                                disabled={client.photos.length === 0}
+                                className={`h-8 w-8 rounded-lg ${client.photoCount > 0 ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-100' : 'text-slate-300 cursor-not-allowed'}`}
+                                disabled={client.photoCount === 0}
                                 onClick={() => copyLink(client.galleryLink)}>
                                 <LinkIcon className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>{client.photos.length > 0 ? "Copy Gallery Link" : "No gallery yet"}</TooltipContent>
+                            <TooltipContent>{client.photoCount > 0 ? "Copy Gallery Link" : "No gallery yet"}</TooltipContent>
                           </Tooltip>
                         </div>
                       </TooltipProvider>
