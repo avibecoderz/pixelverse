@@ -115,9 +115,15 @@ app.use("/api", routes);
 //
 // Any path that is not /api/* or /uploads/* falls through to the SPA index.html
 // so that client-side React Router routes work on a hard refresh or direct link.
-if (process.env.NODE_ENV === "production") {
-  const frontendDist = path.join(__dirname, "../../pixelstudio/dist/public");
+//
+// Detection: serve the frontend if the built index.html exists on disk — this
+// works regardless of whether NODE_ENV is set by the host environment.
+const frontendDist = path.join(__dirname, "../../pixelstudio/dist/public");
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  require("fs").existsSync(path.join(frontendDist, "index.html"));
 
+if (isProduction) {
   // Serve static assets (JS, CSS, images, fonts, etc.)
   app.use(express.static(frontendDist));
 
