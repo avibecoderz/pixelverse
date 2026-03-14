@@ -1,25 +1,54 @@
 import { useState } from "react";
-import { usePayments, useClients } from "@/hooks/use-data";
+import { usePayments, useClients, useUpdateClient } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { DollarSign, CheckCircle2, Clock, Filter, Download, CreditCard } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { DollarSign, CheckCircle2, Clock, Filter, Download, CreditCard, CheckCheck, RotateCcw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatCard } from "@/components/stat-card";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AllPayments() {
   const { data: payments, isLoading } = usePayments();
   const { data: clients } = useClients();
+  const updateClient = useUpdateClient();
+  const { toast } = useToast();
   const [filter, setFilter] = useState("All");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Build a quick lookup: clientId → client's current paymentStatus
+  const clientStatusMap = new Map(
+    (clients ?? []).map(c => [c.id, c.paymentStatus])
+  );
 
   const totalRevenue = payments?.filter(p => p.paymentStatus === 'Paid').reduce((sum, p) => sum + p.amount, 0) || 0;
   // Pending collection = sum of prices from clients who haven't paid yet.
-  // Payment records are always stored as PAID when recorded, so pending is
-  // tracked on the client's paymentStatus field, not on payment records.
   const pendingRevenue = clients?.filter(c => c.paymentStatus === 'Pending').reduce((sum, c) => sum + c.price, 0) || 0;
-  
-  const filteredPayments = payments?.filter(p => filter === "All" || p.paymentStatus === filter);
+
+  // Filter uses the client's live paymentStatus (not the always-Paid payment record status)
+  const filteredPayments = payments?.filter(p => {
+    if (filter === "All") return true;
+    const clientStatus = clientStatusMap.get(p.clientId) ?? p.paymentStatus;
+    return clientStatus === filter;
+  });
+
+  const togglePaymentStatus = async (clientId: string, currentStatus: "Paid" | "Pending", clientName: string) => {
+    const newStatus = currentStatus === "Paid" ? "Pending" : "Paid";
+    setTogglingId(clientId);
+    try {
+      await updateClient.mutateAsync({ id: clientId, paymentStatus: newStatus });
+      toast({
+        title: newStatus === "Paid" ? "Marked as Paid" : "Marked as Pending",
+        description: `${clientName} payment status updated to ${newStatus}.`,
+      });
+    } catch {
+      toast({ title: "Error", description: "Failed to update payment status.", variant: "destructive" });
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -29,22 +58,22 @@ export default function AllPayments() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Total Revenue" 
-          value={`₦${totalRevenue.toLocaleString()}`} 
-          icon={DollarSign} 
+        <StatCard
+          title="Total Revenue"
+          value={`₦${totalRevenue.toLocaleString()}`}
+          icon={DollarSign}
           colorScheme="violet"
         />
-        <StatCard 
-          title="Paid Invoices" 
-          value={payments?.filter(p => p.paymentStatus === 'Paid').length || 0} 
-          icon={CheckCircle2} 
+        <StatCard
+          title="Paid Invoices"
+          value={payments?.filter(p => p.paymentStatus === 'Paid').length || 0}
+          icon={CheckCircle2}
           colorScheme="emerald"
         />
-        <StatCard 
-          title="Pending Collection" 
-          value={`₦${pendingRevenue.toLocaleString()}`} 
-          icon={Clock} 
+        <StatCard
+          title="Pending Collection"
+          value={`₦${pendingRevenue.toLocaleString()}`}
+          icon={Clock}
           colorScheme="amber"
         />
       </div>
@@ -66,12 +95,12 @@ export default function AllPayments() {
               </Select>
             </div>
           </div>
-          
-          <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto bg-white shadow-sm hover-elevate">
+
+          <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto bg-white shadow-sm">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
         </div>
-        
+
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-slate-50/50 sticky top-0 z-10 shadow-sm">
@@ -81,13 +110,14 @@ export default function AllPayments() {
                 <TableHead className="font-semibold">Assigned Staff</TableHead>
                 <TableHead className="font-semibold">Date</TableHead>
                 <TableHead className="font-semibold">Amount</TableHead>
-                <TableHead className="text-right pr-6 font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="text-right pr-6 font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/40">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
                       <p>Loading payments data...</p>
@@ -96,7 +126,7 @@ export default function AllPayments() {
                 </TableRow>
               ) : filteredPayments?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-16 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-16 text-muted-foreground">
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
                         <CreditCard className="w-8 h-8 text-slate-400" />
@@ -108,22 +138,61 @@ export default function AllPayments() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPayments?.map((payment, index) => (
-                  <TableRow key={payment.id} className={`group transition-colors hover:bg-slate-50/80 ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
-                    <TableCell className="pl-6 py-4">
-                      <span className="font-mono text-xs font-medium bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">{payment.invoiceId}</span>
-                    </TableCell>
-                    <TableCell className="font-semibold text-foreground text-base">{payment.clientName}</TableCell>
-                    <TableCell className="text-muted-foreground">{payment.staffName}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm font-medium">
-                      {new Date(payment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </TableCell>
-                    <TableCell className="font-bold text-foreground text-base">₦{payment.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right pr-6">
-                      <StatusBadge status={payment.paymentStatus} />
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredPayments?.map((payment, index) => {
+                  // Use the client's live paymentStatus (from client records),
+                  // falling back to the payment record status if client not found yet.
+                  const liveStatus = clientStatusMap.get(payment.clientId) ?? payment.paymentStatus;
+                  const isToggling = togglingId === payment.clientId;
+
+                  return (
+                    <TableRow key={payment.id} className={`group transition-colors hover:bg-slate-50/80 ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}>
+                      <TableCell className="pl-6 py-4">
+                        <span className="font-mono text-xs font-medium bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
+                          {payment.invoiceId || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-semibold text-foreground text-base">{payment.clientName}</TableCell>
+                      <TableCell className="text-muted-foreground">{payment.staffName}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm font-medium">
+                        {new Date(payment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </TableCell>
+                      <TableCell className="font-bold text-foreground text-base">₦{payment.amount.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={liveStatus} />
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={isToggling || !payment.clientId}
+                                onClick={() => togglePaymentStatus(payment.clientId, liveStatus, payment.clientName)}
+                                className={`h-8 w-8 rounded-lg transition-colors ${
+                                  liveStatus === 'Pending'
+                                    ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+                                    : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'
+                                }`}
+                              >
+                                {isToggling ? (
+                                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
+                                ) : liveStatus === 'Pending' ? (
+                                  <CheckCheck className="w-4 h-4" />
+                                ) : (
+                                  <RotateCcw className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {liveStatus === 'Pending' ? 'Mark as Paid' : 'Mark as Pending'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

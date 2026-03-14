@@ -72,6 +72,8 @@ export type AppClient = {
 
 export type AppPayment = {
   id:            string;
+  /** The client this payment belongs to — used to update the client's paymentStatus. */
+  clientId:      string;
   clientName:    string;
   staffName:     string;
   /** Parsed to number — backend Decimal comes back as a string. */
@@ -152,6 +154,7 @@ function adaptClient(raw: any): AppClient {
 function adaptPayment(raw: any): AppPayment {
   return {
     id:            raw.id,
+    clientId:      raw.clientId ?? raw.client?.id ?? "",
     clientName:    raw.client?.clientName  ?? "",
     staffName:     raw.receivedBy?.name    ?? "",
     amount:        parseFloat(raw.amount),
