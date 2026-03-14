@@ -1,14 +1,14 @@
 // =============================================================================
 // schema.prisma — PixelStudio MVP Database Design
 //
-// Provider : MySQL (via PlanetScale, Railway, or local MySQL)
+// Provider : PostgreSQL (Replit built-in database)
 // ORM      : Prisma
 //
 // Tables   : users · clients · galleries · photos · invoices · payments
 //
-// Run after changes:
-//   npm run db:generate   ← regenerates the Prisma Client (TypeScript types)
-//   npm run db:migrate    ← applies the schema to the actual MySQL database
+// Run after schema changes:
+//   pnpm --filter pixelstudio-api run db:generate  ← regenerates Prisma Client
+//   pnpm --filter pixelstudio-api run db:push      ← applies schema to DB
 // =============================================================================
 
 generator client {
@@ -16,7 +16,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

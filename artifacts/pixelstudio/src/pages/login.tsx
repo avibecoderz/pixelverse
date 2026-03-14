@@ -8,7 +8,7 @@ import {
   ImageIcon, CreditCard, AlertCircle, Mail, ArrowLeft, KeyRound, RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { mockApi, adminAccountApi } from "@/lib/mock-db";
+import { login as apiLogin, getToken } from "@/lib/api";
 
 type Role = "admin" | "staff";
 type ForgotStep = "email" | "otp" | "newpw";
@@ -22,16 +22,16 @@ export default function Login() {
   const { toast } = useToast();
 
   // ─── Login state ─────────────────────────────────────────────────────────
-  const [activeTab, setActiveTab]     = useState<Role>("admin");
-  const [username, setUsername]       = useState("");
-  const [password, setPassword]       = useState("");
-  const [showPw, setShowPw]           = useState(false);
-  const [loginError, setLoginError]   = useState("");
-  const [loading, setLoading]         = useState(false);
+  const [activeTab, setActiveTab]   = useState<Role>("admin");
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [showPw, setShowPw]         = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [loading, setLoading]       = useState(false);
 
   // ─── Forgot-password state ────────────────────────────────────────────────
-  const [forgotMode, setForgotMode]   = useState(false);
-  const [forgotStep, setForgotStep]   = useState<ForgotStep>("email");
+  const [forgotMode, setForgotMode]       = useState(false);
+  const [forgotStep, setForgotStep]       = useState<ForgotStep>("email");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [otpGenerated, setOtpGenerated]   = useState("");
   const [otpInput, setOtpInput]           = useState("");
@@ -41,15 +41,17 @@ export default function Login() {
   const [forgotError, setForgotError]     = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  // Redirect if already logged in
   useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role === "admin") setLocation("/admin");
-    if (role === "staff") setLocation("/staff");
+    const token = getToken();
+    const role  = localStorage.getItem("role");
+    if (token && role === "admin") setLocation("/admin");
+    if (token && role === "staff") setLocation("/staff");
   }, [setLocation]);
 
   const handleTabChange = (tab: Role) => {
     setActiveTab(tab);
-    setUsername(""); setPassword(""); setLoginError("");
+    setEmail(""); setPassword(""); setLoginError("");
     setForgotMode(false); resetForgot();
   };
 
@@ -64,45 +66,42 @@ export default function Login() {
     e.preventDefault();
     setLoginError(""); setLoading(true);
     try {
-      if (activeTab === "admin") {
-        await new Promise(r => setTimeout(r, 600));
-        const account = adminAccountApi.validate(username, password);
-        if (account) {
-          localStorage.setItem("role", "admin");
-          localStorage.setItem("user_name", account.name);
-          toast({ title: "Login successful", description: `Welcome back, ${account.name}!` });
-          setLocation("/admin");
-        } else {
-          setLoginError("Incorrect admin username or password.");
-        }
-      } else {
-        const staff = await mockApi.validateStaffCredentials(username, password);
-        if (staff) {
-          localStorage.setItem("role", "staff");
-          localStorage.setItem("user_name", staff.name);
-          localStorage.setItem("staff_id", staff.id);
-          toast({ title: "Login successful", description: `Welcome back, ${staff.name}!` });
-          setLocation("/staff");
-        } else {
-          setLoginError("Incorrect username or password, or account is inactive.");
-        }
-      }
-    } finally { setLoading(false); }
+      const { user } = await apiLogin(email.trim(), password, activeTab);
+      // Store role and display name for the app layout to use
+      localStorage.setItem("role",      user.role);
+      localStorage.setItem("user_name", user.name);
+      localStorage.setItem("user_id",   user.id);
+      toast({ title: "Login successful", description: `Welcome back, ${user.name}!` });
+      setLocation(user.role === "admin" ? "/admin" : "/staff");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setLoginError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Fill demo credentials from the seed data
   const fillDemo = () => {
-    setUsername(activeTab === "admin" ? "admin01" : "staff01");
-    setPassword(activeTab === "admin" ? adminAccountApi.get().password : "staff123");
+    if (activeTab === "admin") {
+      setEmail("admin@pixelstudio.com");
+      setPassword("admin123");
+    } else {
+      // Use the first staff member created by the seed script, if any.
+      // Staff accounts are created via the Admin → Manage Staff page.
+      setEmail("staff@pixelstudio.com");
+      setPassword("staff123");
+    }
     setLoginError("");
   };
 
-  // ─── Forgot-password steps ────────────────────────────────────────────────
+  // ─── Forgot-password steps (UI demo — no real email service) ─────────────
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError(""); setForgotLoading(true);
     await new Promise(r => setTimeout(r, 800));
-    if (!adminAccountApi.validateEmail(recoveryEmail)) {
-      setForgotError("No admin account found with that email address.");
+    if (!recoveryEmail.trim() || !recoveryEmail.includes("@")) {
+      setForgotError("Please enter a valid email address.");
     } else {
       const otp = generateOtp();
       setOtpGenerated(otp);
@@ -126,8 +125,9 @@ export default function Login() {
     setForgotError("");
     if (newPw.length < 6) { setForgotError("Password must be at least 6 characters."); return; }
     if (newPw !== confirmPw) { setForgotError("Passwords do not match."); return; }
-    adminAccountApi.update({ password: newPw });
-    toast({ title: "Password reset!", description: "Your new password has been saved. You can now sign in." });
+    // In a real implementation this would call a password-reset API endpoint.
+    // For this demo, we just show a success message.
+    toast({ title: "Password reset!", description: "Contact your system administrator to reset your password." });
     setForgotMode(false);
     resetForgot();
   };
@@ -215,8 +215,20 @@ export default function Login() {
               {/* Login form */}
               <form onSubmit={handleLogin} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-sm font-semibold text-slate-700">Username</Label>
-                  <Input id="username" type="text" placeholder={activeTab === "admin" ? "admin01" : "staff01"} value={username} onChange={e => { setUsername(e.target.value); setLoginError(""); }} className="h-12 text-base" autoComplete="username" required />
+                  <Label htmlFor="email" className="text-sm font-semibold text-slate-700">Email Address</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder={activeTab === "admin" ? "admin@pixelstudio.ng" : "staff@pixelstudio.ng"}
+                      value={email}
+                      onChange={e => { setEmail(e.target.value); setLoginError(""); }}
+                      className="h-12 text-base pl-10"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Password</Label>
@@ -242,7 +254,9 @@ export default function Login() {
                 <Button type="submit" size="lg" disabled={loading} className="w-full h-12 text-base font-bold shadow-md">
                   {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Signing in...</span> : "Sign In"}
                 </Button>
-                <p className="text-center text-xs text-slate-400">Demo — {activeTab === "admin" ? "admin01 / admin123" : "staff01 / staff123"}</p>
+                <p className="text-center text-xs text-slate-400">
+                  Demo — {activeTab === "admin" ? "admin@pixelstudio.com / admin123" : "Create a staff account first via Admin → Manage Staff"}
+                </p>
               </form>
             </>
           ) : (
@@ -281,12 +295,12 @@ export default function Login() {
               {forgotStep === "email" && (
                 <form onSubmit={handleEmailSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-slate-700">Recovery Email (Gmail)</Label>
+                    <Label className="text-sm font-semibold text-slate-700">Recovery Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-                      <Input type="email" placeholder="ngozi@pixelstudio.ng" value={recoveryEmail} onChange={e => { setRecoveryEmail(e.target.value); setForgotError(""); }} className="h-12 pl-10 text-base" required />
+                      <Input type="email" placeholder="admin@pixelstudio.ng" value={recoveryEmail} onChange={e => { setRecoveryEmail(e.target.value); setForgotError(""); }} className="h-12 pl-10 text-base" required />
                     </div>
-                    <p className="text-xs text-slate-400">Enter the Gmail/email address linked to the admin account.</p>
+                    <p className="text-xs text-slate-400">Enter the email address linked to your admin account.</p>
                   </div>
                   {forgotError && <div className="flex items-center gap-2.5 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3.5"><AlertCircle className="w-4 h-4 shrink-0" />{forgotError}</div>}
                   <Button type="submit" size="lg" disabled={forgotLoading} className="w-full h-12 font-bold">
@@ -322,7 +336,7 @@ export default function Login() {
               {forgotStep === "newpw" && (
                 <form onSubmit={handleNewPwSubmit} className="space-y-5">
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center gap-2.5 text-sm text-emerald-700 font-medium">
-                    <CheckCircle className="w-4 h-4 shrink-0" /> Identity verified! Set your new password below.
+                    <CheckCircle className="w-4 h-4 shrink-0" /> Identity verified! Contact your administrator with the new password below.
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-slate-700">New Password</Label>
@@ -339,7 +353,7 @@ export default function Login() {
                   </div>
                   {forgotError && <div className="flex items-center gap-2.5 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3.5"><AlertCircle className="w-4 h-4 shrink-0" />{forgotError}</div>}
                   <Button type="submit" size="lg" className="w-full h-12 font-bold gap-2">
-                    <KeyRound className="w-4 h-4" /> Reset Password
+                    <KeyRound className="w-4 h-4" /> Confirm Reset
                   </Button>
                 </form>
               )}

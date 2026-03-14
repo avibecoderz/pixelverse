@@ -1,96 +1,128 @@
-# Workspace
+# PixelStudio — Project Overview
 
-## Overview
+## What This Is
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+PixelStudio is a Nigerian photography studio management SaaS. It has two roles:
+- **Admin** — full access: manage staff, clients, galleries, payments, settings
+- **Staff** — limited access: view/manage assigned clients and galleries
 
-## Stack
+---
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-
-## Structure
+## Monorepo Structure
 
 ```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+artifacts/
+├── pixelstudio/           # React + Vite + Tailwind CSS v4 + shadcn/ui frontend
+│   └── src/
+│       ├── lib/api.ts         # All API functions + getImageUrl() helper
+│       ├── hooks/use-data.ts  # React Query hooks + data adapters
+│       └── pages/             # login, dashboard, manage-staff, manage-clients,
+│                              #   gallery-management, payment-tracking,
+│                              #   admin-settings, staff-profile, client-gallery
+├── pixelstudio-api/       # Node.js + Express + Prisma + PostgreSQL backend (CommonJS)
+│   ├── src/
+│   │   ├── server.js          # Entry point, loads dotenv, starts Express
+│   │   ├── app.js             # Express app, CORS, routes mounted at /api
+│   │   ├── routes/            # auth, staff, clients, galleries, payments
+│   │   ├── controllers/       # Business logic per entity
+│   │   ├── middlewares/       # authMiddleware.js, errorMiddleware.js
+│   │   └── utils/seed.js      # Seed script: creates Admin account
+│   └── prisma/schema.prisma   # PostgreSQL schema
+└── api-server/            # Placeholder legacy server (DO NOT USE for PixelStudio)
 ```
 
-## TypeScript & Composite Projects
+---
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+## Running the App
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+Both servers must run together:
 
-## Root Scripts
+| Workflow | Command | Port |
+|---|---|---|
+| `artifacts/pixelstudio: web` | `pnpm --filter @workspace/pixelstudio run dev` | auto (env PORT) |
+| `artifacts/pixelstudio-api: PixelStudio API` | `pnpm --filter pixelstudio-api run dev` | 3000 |
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+The Vite dev server proxies `/api/*` and `/uploads/*` requests to `http://localhost:3000`.
+No `VITE_API_URL` is needed in development — leave it empty in `.env.local`.
 
-## Packages
+---
 
-### `artifacts/api-server` (`@workspace/api-server`)
+## Database
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+- **Provider**: Replit built-in PostgreSQL (auto-provisioned, `DATABASE_URL` injected by Replit)
+- **ORM**: Prisma (CommonJS)
+- **Schema**: `artifacts/pixelstudio-api/prisma/schema.prisma`
+- **Push schema**: `pnpm --filter pixelstudio-api run db:push`
+- **Seed**: `pnpm --filter pixelstudio-api run db:seed`
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+### Models
+- `Staff` — has roles ADMIN/STAFF, email + passwordHash
+- `Client` — belongs to a photographer (staff), has phone/email/notes
+- `Gallery` — belongs to Client, has token (32-char hex), status (DRAFT/READY/ARCHIVED)
+- `Photo` — belongs to Gallery, stored locally via Multer under `/uploads/`
+- `Payment` — belongs to Client, tracks amount/status (PENDING/PARTIAL/PAID)/method
 
-### `lib/db` (`@workspace/db`)
+---
 
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
+## Authentication
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
+- **JWT** stored in `localStorage` under key `ps_token`
+- Other localStorage keys: `role` (admin|staff), `user_name`, `user_id`
+- Login endpoint: `POST /api/auth/login` — email + password
+- Role from backend is UPPERCASE (`ADMIN`/`STAFF`); `api.ts` normalises to lowercase
 
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+---
 
-### `lib/api-spec` (`@workspace/api-spec`)
+## Demo Credentials
 
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
+After running the seed script:
 
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@pixelstudio.com | admin123 |
+| Staff | (create via Admin → Manage Staff) | (set via Admin → Manage Staff) |
 
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
+---
 
-### `lib/api-zod` (`@workspace/api-zod`)
+## Tech Stack
 
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Tailwind CSS v4, shadcn/ui, React Query (TanStack) |
+| Backend | Node.js 24, Express 5, Prisma ORM, CommonJS |
+| Database | PostgreSQL (Replit built-in) |
+| Auth | JWT (jsonwebtoken), bcryptjs |
+| File storage | Multer — local disk at `artifacts/pixelstudio-api/uploads/` |
+| Monorepo | pnpm workspaces |
 
-### `lib/api-client-react` (`@workspace/api-client-react`)
+---
 
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+## Key Files
 
-### `scripts` (`@workspace/scripts`)
+- `artifacts/pixelstudio/src/lib/api.ts` — all API calls, `getImageUrl()` helper
+- `artifacts/pixelstudio/src/hooks/use-data.ts` — React Query hooks, data normalization
+- `artifacts/pixelstudio-api/src/app.js` — Express app setup, CORS config
+- `artifacts/pixelstudio-api/src/middlewares/errorMiddleware.js` — error handling
+- `artifacts/pixelstudio-api/.env` — backend env vars (PORT, JWT_SECRET, etc.)
+- `artifacts/pixelstudio/.env.local` — frontend env vars (VITE_API_URL="")
 
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+---
+
+## Enum Values
+
+Backend enums are UPPERCASE; the frontend normalises them:
+
+| Backend | Frontend |
+|---|---|
+| `ADMIN` / `STAFF` | `admin` / `staff` |
+| `DRAFT` / `READY` / `ARCHIVED` | `draft` / `ready` / `archived` |
+| `PENDING` / `PARTIAL` / `PAID` | `pending` / `partial` / `paid` |
+| `CASH` / `TRANSFER` / `POS` | `cash` / `transfer` / `pos` |
+
+---
+
+## Gallery Public Access
+
+Clients access their gallery via `/gallery/:token` (no login required).
+The backend validates the 32-char hex token and returns photos only if status is `READY`.
+A `403` response means the gallery is not ready yet — the frontend shows a friendly message.

@@ -12,47 +12,55 @@
  *   can be looked up independently.
  *
  * Response behaviour by orderStatus:
- *   PENDING  → 403 with clientName + studioName + orderStatus
- *               (customer sees "not started yet" message)
- *   EDITING  → 403 with clientName + studioName + orderStatus
- *               (customer sees "still being edited" message)
- *   READY    → 200 with full photo list
- *   DELIVERED→ 200 with full photo list
+ *   PENDING  → 403  — photos not started yet (personalised waiting page data included)
+ *   EDITING  → 403  — photos being edited  (personalised waiting page data included)
+ *   READY    → 200  — full photo list returned
+ *   DELIVERED→ 200  — full photo list returned
  *
- * We intentionally include clientName + studioName on the 403 so the
- * frontend can render a personalised waiting page:
- *   "Hi Tunde, your PixelStudio photos are still being edited."
- * instead of a blank error screen.
+ * Both 403 responses include clientName, photographerName, and orderStatus so
+ * the frontend can render a personalised "not ready yet" message rather than a
+ * blank error screen.
  */
 
 const prisma             = require("../utils/prismaClient");
 const { success, error } = require("../utils/responseUtils");
 
+// ─── Helper: build the full shareable gallery URL ─────────────────────────────
+/**
+ * Construct the full frontend URL that customers share.
+ * e.g. https://pixelstudio.ng/gallery/abc123def456...
+ *
+ * Set FRONTEND_URL in .env so this resolves to the real domain in production.
+ * Falls back to a placeholder path in development.
+ */
+const buildGalleryUrl = (token) => {
+  const base = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
+  return base ? `${base}/gallery/${token}` : `/gallery/${token}`;
+};
+
 // ─── GET /api/gallery/:token ──────────────────────────────────────────────────
 /**
  * Look up a gallery by its public share token and return the photos inside.
  *
- * Prisma query uses top-level `select` (not `include`) so only the exact
- * columns needed are fetched — FK columns (clientId, uploadedById) and
- * updatedAt are never sent to the client.
- *
- * Shape returned by Prisma:
+ * Shape returned on success (200):
  *   {
- *     token:     string,
- *     createdAt: Date,
- *     client: {
- *       clientName:  string,
- *       orderStatus: "PENDING" | "EDITING" | "READY" | "DELIVERED",
- *       createdBy:   { name: string } | null   ← null only if DBA deleted the user row
- *     },
- *     photos: Array<{ id, imageUrl, fileName, createdAt }>
+ *     studioName, clientName, photographerName,
+ *     galleryToken, galleryUrl,
+ *     orderStatus, createdAt, photoCount,
+ *     photos: [{ id, imageUrl, fileName, createdAt }]
+ *   }
+ *
+ * Shape returned when not ready (403):
+ *   {
+ *     success: false,
+ *     message: "...",
+ *     data: { studioName, clientName, photographerName, orderStatus }
  *   }
  */
 const getGalleryByToken = async (req, res, next) => {
   try {
     // ── Normalise + validate the token ────────────────────────────────────────
-    // Lowercase first: some email clients capitalise URLs in transit, which
-    // would cause a genuine token to fail validation unnecessarily.
+    // Lowercase first: some email clients capitalise URLs in transit.
     const token = req.params.token.toLowerCase();
 
     // The token is always exactly 32 lowercase hex characters.
@@ -66,14 +74,8 @@ const getGalleryByToken = async (req, res, next) => {
     }
 
     // ── Fetch the gallery ─────────────────────────────────────────────────────
-    // Use `select` at the top level so Prisma only fetches the columns we
-    // actually use in the response — FK columns are not included.
-    //
-    // Photos are ordered by (createdAt ASC, id ASC).
-    // The secondary `id` sort is essential because multiple files uploaded in
-    // a single request are inserted inside one $transaction, so they all share
-    // the same createdAt timestamp. Without the secondary key the order would
-    // be non-deterministic across repeated fetches.
+    // Photos are ordered by (createdAt ASC, id ASC) so that multiple files
+    // uploaded in one batch (same timestamp) appear in a deterministic order.
     const gallery = await prisma.gallery.findUnique({
       where:  { token },
       select: {
@@ -94,8 +96,8 @@ const getGalleryByToken = async (req, res, next) => {
             createdAt: true,
           },
           orderBy: [
-            { createdAt: "asc" }, // oldest batch first
-            { id:        "asc" }, // tie-break: deterministic order within same batch
+            { createdAt: "asc" },
+            { id:        "asc" }, // tie-break for same-batch uploads
           ],
         },
       },
@@ -105,25 +107,23 @@ const getGalleryByToken = async (req, res, next) => {
     if (!gallery) {
       return error(
         res,
-        "Gallery not found. The link may be invalid or expired.",
+        "Gallery not found. The link may be invalid or the photos have been removed.",
         404
       );
     }
 
-    // ── Destructure safely ────────────────────────────────────────────────────
+    // ── Destructure client data ───────────────────────────────────────────────
     const { clientName, orderStatus, createdBy } = gallery.client;
 
-    // createdBy is non-nullable in the schema (Client.createdById: String, no ?),
-    // but we guard anyway in case a DBA deleted a user row directly.
+    // createdBy is non-nullable in the schema but we guard against manual DBA deletes
     const photographerName = createdBy ? createdBy.name : "PixelStudio";
 
-    // Studio name — read from .env so the studio owner configures it once
-    // without touching code. Falls back to "PixelStudio" if not set.
-    const studioName = process.env.STUDIO_NAME || "PixelStudio";
+    const studioName  = process.env.STUDIO_NAME || "PixelStudio";
+    const galleryUrl  = buildGalleryUrl(token);
 
-    // ── Not ready yet ─────────────────────────────────────────────────────────
-    // Respond with 403 but include enough context for the frontend to render a
-    // personalised waiting screen. The photo list is intentionally omitted.
+    // ── Photos not ready yet ──────────────────────────────────────────────────
+    // Return a 403 with enough context for a personalised waiting screen.
+    // The photo list is intentionally excluded.
     if (orderStatus === "PENDING" || orderStatus === "EDITING") {
       return res.status(403).json({
         success: false,
@@ -138,15 +138,16 @@ const getGalleryByToken = async (req, res, next) => {
     }
 
     // ── Photos are ready ──────────────────────────────────────────────────────
-    return success(res, "Gallery loaded", {
+    return success(res, "Gallery loaded successfully", {
       studioName,
       clientName,
       photographerName,
       galleryToken: gallery.token,
+      galleryUrl,
       orderStatus,
-      createdAt:    gallery.createdAt, // when photos were first uploaded
-      photoCount:   gallery.photos.length,
-      photos:       gallery.photos,
+      createdAt:   gallery.createdAt,
+      photoCount:  gallery.photos.length,
+      photos:      gallery.photos,
     });
   } catch (err) {
     next(err);

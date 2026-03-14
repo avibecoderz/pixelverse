@@ -1,69 +1,125 @@
 /**
  * app.js — Express Application Setup
  *
- * This file creates and configures the Express application.
- * - CORS: allows the frontend to talk to this backend
- * - express.json: parses incoming JSON request bodies
- * - Routes: all API routes are mounted here
- * - Error handler: catches any unhandled errors at the end
+ * Configures middleware, routes, and error handling for the PixelStudio API.
+ *
+ * Middleware order matters:
+ *   1. CORS           — must be first so preflight OPTIONS requests get headers
+ *   2. Body parsers   — parse JSON and URL-encoded bodies before routes read them
+ *   3. Static files   — serve /uploads before any auth middleware touches requests
+ *   4. Request logger — log every request in development for easy debugging
+ *   5. Routes         — all /api/* handlers
+ *   6. 404 handler    — catch unmatched routes
+ *   7. Error handler  — catch errors thrown by route handlers (must be last)
  */
 
 const express = require("express");
-const cors = require("cors");
-const path = require("path");
+const cors    = require("cors");
+const path    = require("path");
 
-const routes = require("./routes");
+const routes         = require("./routes");
 const errorMiddleware = require("./middlewares/errorMiddleware");
 
-// Create the Express app
 const app = express();
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// Allow requests from the PixelStudio frontend
+// Allow the frontend origin to call the API.
+//
+// In development:  FRONTEND_URL is usually not set, so we fall back to allowing
+//                  any localhost port.  This is fine because there is no sensitive
+//                  cross-origin data exposed without a valid JWT.
+//
+// In production:   Set FRONTEND_URL in your .env to restrict CORS to your real
+//                  domain, e.g. FRONTEND_URL=https://pixelstudio.ng
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,          // production origin (may be undefined in dev)
+  "http://localhost:5173",           // default Vite dev port
+  "http://localhost:4173",           // Vite preview
+  "http://localhost:3000",           // fallback
+].filter(Boolean); // remove undefined/null entries
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true, // allow cookies/auth headers
+    origin: (origin, callback) => {
+      // Allow requests with no Origin header (Postman, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Allow any localhost port in all environments (Vite dev, tests, curl)
+      if (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+        return callback(null, true);
+      }
+
+      // Allow Replit dev and preview domains (*.replit.dev, *.replit.app)
+      // These are used by the Replit workspace preview iframe and the api-server proxy.
+      if (origin.endsWith(".replit.dev") || origin.endsWith(".replit.app")) {
+        return callback(null, true);
+      }
+
+      // Allow any explicit origin in the allow-list (production FRONTEND_URL)
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      callback(new Error(`CORS: origin '${origin}' is not allowed`));
+    },
+    credentials: true, // allow cookies and Authorization headers
   })
 );
 
 // ─── Body Parsers ─────────────────────────────────────────────────────────────
-// Parse incoming JSON bodies (e.g. { "email": "admin@pixelstudio.ng", "password": "..." })
+// Parse incoming JSON bodies (e.g. { "email": "...", "password": "..." })
 app.use(express.json());
 
-// Parse URL-encoded form data (e.g. HTML form submissions)
+// Parse URL-encoded form data (e.g. classic HTML form submissions)
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
-// Serve uploaded photos publicly at /uploads/filename.jpg
+// Serve uploaded photos at GET /uploads/<filename>
+// This must be mounted before any auth middleware so gallery views work publicly.
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+// ─── Dev Request Logger ───────────────────────────────────────────────────────
+// Logs every request in development so you can trace what the frontend is calling.
+// Skipped in production to avoid noisy logs — use a proper logger (winston/pino) there.
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, _res, next) => {
+    const ts = new Date().toISOString().slice(11, 23); // HH:MM:SS.mmm
+    console.log(`[${ts}] ${req.method} ${req.originalUrl}`);
+    next();
+  });
+}
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
-// Simple endpoint to confirm the server is alive
-app.get("/health", (req, res) => {
+// Simple liveness probe — returns 200 so load balancers and CI checks know
+// the server is up without needing to authenticate.
+app.get("/health", (_req, res) => {
   res.json({
-    status: "ok",
-    message: "PixelStudio API is running",
+    status:    "ok",
+    message:   "PixelStudio API is running",
     timestamp: new Date().toISOString(),
+    env:       process.env.NODE_ENV || "development",
   });
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
-// All routes are prefixed with /api
-// e.g. POST /api/auth/login, GET /api/clients, etc.
+// All routes are prefixed with /api — e.g. POST /api/auth/login
 app.use("/api", routes);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
-// If no route matched, return a friendly 404 response
+// Runs only if no route above matched the incoming path.
+// Returns structured JSON so the frontend always gets a parseable error body.
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.originalUrl}`,
+    hint:    "Check the API docs for the correct endpoint path.",
   });
 });
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
-// Catches any error thrown inside route handlers or middleware
+// Must be registered LAST and must have exactly 4 parameters so Express
+// recognises it as an error-handling middleware.
 app.use(errorMiddleware);
 
 module.exports = app;
