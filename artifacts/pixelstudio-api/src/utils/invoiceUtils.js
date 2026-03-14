@@ -58,7 +58,11 @@ const generateInvoiceNumber = async (prisma) => {
     return match ? parseInt(match[1], 10) : 0;
   });
 
-  const max = Math.max(...numbers);
+  // Use reduce instead of Math.max(...numbers).
+  // Spreading a large array as function arguments hits V8's argument count
+  // limit (~65 k). reduce() traverses the array without creating argument
+  // entries, so it works correctly at any size.
+  const max = numbers.reduce((highest, n) => (n > highest ? n : highest), 0);
   return `INV-${String(max + 1).padStart(4, "0")}`;
 };
 
