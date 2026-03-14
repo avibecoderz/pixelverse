@@ -299,3 +299,31 @@
     background-size: 16px 16px;
   }
 }
+
+/* ── Print styles for invoice + QR code ──────────────────────────────────────
+ * Ensures the QR code SVG always prints with full colour (black on white)
+ * regardless of the browser's "Background graphics" print setting.
+ * Also keeps the invoice layout clean on paper / PDF export.
+ * ────────────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Force SVG paths (the QR code squares) to print in black */
+  svg path,
+  svg rect {
+    fill: currentColor !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* The white padding around the QR code must remain white */
+  .gallery-qr-wrapper {
+    background-color: white !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Remove page-level padding so the invoice fills the page */
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}

@@ -1,29 +1,34 @@
-import { useRoute, useLocation } from "wouter";
+import { useRoute } from "wouter";
 import { useClient } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft, Download, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { GalleryQrCode } from "@/components/gallery-qr-code";
 
 export default function InvoicePreview() {
   const [, params] = useRoute("/staff/clients/:id/invoice");
-  const [, setLocation] = useLocation();
   const { data: client, isLoading } = useClient(params?.id || "");
   const { toast } = useToast();
 
   if (isLoading) return <div className="p-12 text-center text-muted-foreground animate-pulse">Loading invoice...</div>;
-  if (!client) return <div className="p-12 text-center font-semibold">Invoice not found.</div>;
+  if (!client)   return <div className="p-12 text-center font-semibold">Invoice not found.</div>;
 
   return (
     <div className="min-h-screen bg-slate-100/80 py-10 px-4 font-sans print:bg-white print:py-0">
       <div className="max-w-3xl mx-auto space-y-5">
-        {/* Controls */}
+
+        {/* ── Controls (hidden when printing) ──────────────────────────── */}
         <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 print:hidden gap-3">
           <Button variant="ghost" onClick={() => window.history.back()} className="gap-2 font-semibold text-slate-600">
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => toast({ title: "Downloading…", description: "PDF is being generated." })} className="gap-2 bg-white font-semibold">
+            <Button
+              variant="outline"
+              onClick={() => toast({ title: "Downloading…", description: "PDF is being generated." })}
+              className="gap-2 bg-white font-semibold"
+            >
               <Download className="w-4 h-4" /> Download PDF
             </Button>
             <Button onClick={() => window.print()} className="gap-2 font-semibold shadow-md">
@@ -32,12 +37,14 @@ export default function InvoicePreview() {
           </div>
         </div>
 
-        {/* Invoice Paper */}
+        {/* ── Invoice Paper ─────────────────────────────────────────────── */}
         <Card className="border-0 shadow-xl print:shadow-none rounded-none sm:rounded-2xl overflow-hidden bg-white">
+          {/* Accent bar */}
           <div className="h-2.5 w-full bg-gradient-to-r from-violet-600 to-indigo-600 print:bg-violet-600" />
 
           <CardContent className="p-10 sm:p-16">
-            {/* Header */}
+
+            {/* ── Header: studio + invoice number ─────────────────────── */}
             <div className="flex justify-between items-start border-b-2 border-slate-100 pb-10 mb-10">
               <div>
                 <div className="flex items-center gap-2.5 font-display text-2xl font-bold text-slate-900 mb-4">
@@ -54,12 +61,14 @@ export default function InvoicePreview() {
               </div>
               <div className="text-right">
                 <h1 className="text-5xl font-display font-bold text-slate-200 tracking-widest mb-3">INVOICE</h1>
-                <p className="font-mono text-sm font-bold text-slate-700">{client.invoiceId}</p>
-                <p className="text-slate-500 text-sm mt-1">Issued: {new Date(client.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="font-mono text-sm font-bold text-slate-700">{client.invoiceId || "—"}</p>
+                <p className="text-slate-500 text-sm mt-1">
+                  Issued: {new Date(client.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
               </div>
             </div>
 
-            {/* Bill To + Status */}
+            {/* ── Bill To + Payment Status ─────────────────────────────── */}
             <div className="flex justify-between items-end mb-12 bg-slate-50 rounded-xl p-6 border border-slate-100">
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Billed To</p>
@@ -78,7 +87,7 @@ export default function InvoicePreview() {
               </div>
             </div>
 
-            {/* Line Items */}
+            {/* ── Line Items ───────────────────────────────────────────── */}
             <table className="w-full mb-10">
               <thead>
                 <tr className="border-b-2 border-slate-200 text-slate-400 text-xs uppercase tracking-wider">
@@ -93,44 +102,62 @@ export default function InvoicePreview() {
                   <td className="py-6 pr-4">
                     <p className="font-bold text-slate-800 text-base">Photography Services</p>
                     <p className="text-sm text-slate-400 mt-0.5">Photographer: {client.staffName}</p>
-                    {client.notes && <p className="text-sm text-slate-500 mt-1 max-w-xs italic">{client.notes}</p>}
+                    {client.notes && (
+                      <p className="text-sm text-slate-500 mt-1 max-w-xs italic">{client.notes}</p>
+                    )}
                   </td>
                   <td className="py-6 text-center">
-                    <span className="inline-block bg-slate-100 text-slate-600 px-3 py-1 rounded-md text-sm font-medium">{client.photoFormat}</span>
+                    <span className="inline-block bg-slate-100 text-slate-600 px-3 py-1 rounded-md text-sm font-medium">
+                      {client.photoFormat}
+                    </span>
                   </td>
                   <td className="py-6 text-center">
                     <span className={`inline-block px-3 py-1 rounded-md text-sm font-medium border ${
                       client.orderStatus === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      client.orderStatus === 'Ready' ? 'bg-violet-50 text-violet-700 border-violet-200' :
-                      client.orderStatus === 'Editing' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}>{client.orderStatus}</span>
+                      client.orderStatus === 'Ready'     ? 'bg-violet-50 text-violet-700 border-violet-200'   :
+                      client.orderStatus === 'Editing'   ? 'bg-blue-50 text-blue-700 border-blue-200'         :
+                                                           'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {client.orderStatus}
+                    </span>
                   </td>
-                  <td className="py-6 text-right font-bold text-xl text-slate-900">₦{client.price.toLocaleString()}</td>
+                  <td className="py-6 text-right font-bold text-xl text-slate-900">
+                    ₦{client.price.toLocaleString()}
+                  </td>
                 </tr>
               </tbody>
             </table>
 
-            {/* Totals */}
-            <div className="flex justify-end">
-              <div className="w-72 space-y-3.5 bg-slate-50 p-6 rounded-xl border border-slate-100">
+            {/* ── Totals + QR Code (side by side) ─────────────────────── */}
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-10">
+              {/* QR code — always rendered, visible on screen, print, and PDF */}
+              {client.galleryLink && (
+                <GalleryQrCode galleryLink={client.galleryLink} size={160} />
+              )}
+
+              {/* Totals panel */}
+              <div className="w-full sm:w-72 space-y-3.5 bg-slate-50 p-6 rounded-xl border border-slate-100 ml-auto">
                 <div className="flex justify-between text-sm text-slate-500">
-                  <span>Subtotal</span><span className="text-slate-700 font-medium">₦{client.price.toLocaleString()}</span>
+                  <span>Subtotal</span>
+                  <span className="text-slate-700 font-medium">₦{client.price.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-500">
-                  <span>Tax (0%)</span><span className="text-slate-700 font-medium">₦0.00</span>
+                  <span>Tax (0%)</span>
+                  <span className="text-slate-700 font-medium">₦0.00</span>
                 </div>
                 <div className="flex justify-between text-xl font-bold border-t-2 border-slate-200 pt-4 text-slate-900">
-                  <span>Total Due</span><span>₦{client.price.toLocaleString()}</span>
+                  <span>Total Due</span>
+                  <span>₦{client.price.toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
+            {/* ── Footer ──────────────────────────────────────────────── */}
             <div className="mt-20 pt-8 border-t-2 border-slate-100 text-center text-slate-500 text-sm space-y-1">
               <p className="font-medium text-slate-600">Thank you for choosing PixelStudio for your photography needs.</p>
               <p>Questions? Contact us at <span className="text-primary font-semibold">hello@pixelstudio.ng</span></p>
             </div>
+
           </CardContent>
         </Card>
       </div>
