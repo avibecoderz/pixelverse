@@ -190,16 +190,48 @@ export interface Payment {
 }
 
 export interface Photo {
-  id:       string;
-  imageUrl: string;
-  fileName: string;
+  id:        string;
+  imageUrl:  string;
+  fileName:  string;
+  createdAt: string;  // returned by both upload and gallery endpoints
 }
 
-export interface Gallery {
-  id:     string;
-  token:  string;
-  client: Pick<Client, "clientName" | "photoFormat">;
-  photos: Photo[];
+/**
+ * Shape returned by POST /api/clients/:clientId/photos
+ * The `data` field contains client info, gallery info, and the new photo records.
+ */
+export interface UploadResult {
+  client: {
+    id:            string;
+    clientName:    string;
+    phone:         string;
+    orderStatus:   Client["orderStatus"];
+    paymentStatus: Client["paymentStatus"];
+    galleryToken:  string;
+  };
+  gallery: {
+    id:    string;
+    token: string;
+    url:   string;   // full frontend URL built from FRONTEND_URL env var
+  };
+  photoCount: number;
+  photos:     Photo[];
+}
+
+/**
+ * Shape returned by GET /api/gallery/:token (public endpoint).
+ * Note: this is different from UploadResult.gallery — this is the full
+ * customer-facing gallery view returned by galleryController.
+ */
+export interface GalleryView {
+  studioName:       string;
+  clientName:       string;
+  photographerName: string;
+  galleryToken:     string;
+  orderStatus:      Client["orderStatus"];
+  createdAt:        string;
+  photoCount:       number;
+  photos:           Photo[];
 }
 
 // ─── 1. Authentication ────────────────────────────────────────────────────────
@@ -340,11 +372,11 @@ export async function getClient(clientId: string): Promise<Client> {
 export async function uploadPhotos(
   clientId: string,
   files: File[]
-): Promise<{ uploaded: number; photos: Photo[] }> {
+): Promise<UploadResult> {
   const form = new FormData();
   files.forEach((file) => form.append("photos", file));
 
-  return apiFetch<{ uploaded: number; photos: Photo[] }>(
+  return apiFetch<UploadResult>(
     `/api/clients/${clientId}/photos`,
     {
       method: "POST",
@@ -364,10 +396,10 @@ export async function uploadPhotos(
  * Usage:
  *   const gallery = await getGallery("abc123def456...");
  */
-export async function getGallery(token: string): Promise<Gallery> {
+export async function getGallery(token: string): Promise<GalleryView> {
   // Public endpoint — apiFetch still works here, it simply won't add an
   // Authorization header if no token is stored.
-  return apiFetch<Gallery>(`/api/gallery/${token}`);
+  return apiFetch<GalleryView>(`/api/gallery/${token}`);
 }
 
 // ─── 5. Invoices ──────────────────────────────────────────────────────────────
