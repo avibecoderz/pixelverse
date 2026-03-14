@@ -189,7 +189,10 @@ const recordPayment = async (req, res, next) => {
     // ── Atomic transaction: create payment + conditional status updates ────────
     // All writes happen together. If any step fails, the entire transaction
     // rolls back — no orphaned payment rows, no half-updated client records.
-    const paymentId = await prisma.$transaction(async (tx) => {
+    //
+    // The transaction returns all values needed for the response so that no
+    // second aggregate query is required after the transaction completes.
+    const { paymentId, totalPaid, isFullyPaid } = await prisma.$transaction(async (tx) => {
       // Step 1: Create the payment record
       const payment = await tx.payment.create({
         data: {
@@ -202,18 +205,18 @@ const recordPayment = async (req, res, next) => {
       });
 
       // Step 2: Sum ALL confirmed payments for this client, including the
-      // new one just created. Using aggregate inside the transaction ensures
-      // we read the post-insert total, not the pre-insert total.
-      const aggregate = await tx.payment.aggregate({
+      // new one just created. Running the aggregate inside the same transaction
+      // guarantees we read the post-insert total, not the pre-insert total.
+      const agg = await tx.payment.aggregate({
         where: { clientId, status: "PAID" },
         _sum:  { amount: true },
       });
 
-      const totalPaid  = parseFloat(aggregate._sum.amount || 0);
-      const isFullyPaid = totalPaid >= sessionPrice;
+      const txTotalPaid  = parseFloat(agg._sum.amount || 0);
+      const txIsFullyPaid = txTotalPaid >= sessionPrice;
 
       // Step 3: Update client and invoices only when fully settled
-      if (isFullyPaid) {
+      if (txIsFullyPaid) {
         await tx.client.update({
           where: { id: clientId },
           data:  { paymentStatus: "PAID" },
@@ -227,27 +230,20 @@ const recordPayment = async (req, res, next) => {
         });
       }
 
-      return payment.id;
+      // Return everything the outer scope needs — avoids a second aggregate
+      // query after the transaction and removes variable shadowing.
+      return { paymentId: payment.id, totalPaid: txTotalPaid, isFullyPaid: txIsFullyPaid };
     });
 
     // ── Fetch the created payment with fresh relational data ──────────────────
-    // Done outside the transaction because we want the post-transaction state
-    // of client.paymentStatus (which may have just been updated to PAID).
+    // Done outside the transaction so that client.paymentStatus in the response
+    // reflects the value written by the transaction (PAID or still PENDING).
     const fullPayment = await prisma.payment.findUnique({
       where:  { id: paymentId },
       select: FULL_PAYMENT_SELECT,
     });
 
-    // Re-read the total from the DB for the summary block.
-    // This is a cheap aggregate query and ensures the summary is accurate
-    // even if a concurrent payment was recorded between the transaction and now.
-    const aggregate = await prisma.payment.aggregate({
-      where: { clientId, status: "PAID" },
-      _sum:  { amount: true },
-    });
-    const totalPaid  = parseFloat(aggregate._sum.amount || 0);
-    const balance    = Math.max(0, sessionPrice - totalPaid);
-    const isFullyPaid = totalPaid >= sessionPrice;
+    const balance = Math.max(0, sessionPrice - totalPaid);
 
     return success(
       res,
