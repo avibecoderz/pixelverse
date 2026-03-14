@@ -106,16 +106,38 @@ app.get("/health", (_req, res) => {
 // All routes are prefixed with /api — e.g. POST /api/auth/login
 app.use("/api", routes);
 
-// ─── 404 Handler ──────────────────────────────────────────────────────────────
-// Runs only if no route above matched the incoming path.
-// Returns structured JSON so the frontend always gets a parseable error body.
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-    hint:    "Check the API docs for the correct endpoint path.",
+// ─── Frontend Static Files (Production) ───────────────────────────────────────
+// In production, Express serves the pre-built React app so only one process
+// needs to run. The Vite dev server handles this in development instead.
+//
+// The React app is built to artifacts/pixelstudio/dist/public/ by:
+//   pnpm --filter @workspace/pixelstudio run build
+//
+// Any path that is not /api/* or /uploads/* falls through to the SPA index.html
+// so that client-side React Router routes work on a hard refresh or direct link.
+if (process.env.NODE_ENV === "production") {
+  const frontendDist = path.join(__dirname, "../../pixelstudio/dist/public");
+
+  // Serve static assets (JS, CSS, images, fonts, etc.)
+  app.use(express.static(frontendDist));
+
+  // SPA fallback — any non-API, non-asset request gets index.html so React
+  // Router can handle the route on the client side.
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
   });
-});
+} else {
+  // ─── 404 Handler (Development) ────────────────────────────────────────────
+  // In development the Vite dev server handles the frontend — any unknown
+  // path here is a genuine missing API endpoint.
+  app.use((req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `Route not found: ${req.method} ${req.originalUrl}`,
+      hint:    "Check the API docs for the correct endpoint path.",
+    });
+  });
+}
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 // Must be registered LAST and must have exactly 4 parameters so Express

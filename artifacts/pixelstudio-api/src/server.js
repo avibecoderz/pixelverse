@@ -11,8 +11,8 @@ require("dotenv").config();
 
 const app = require("./app");
 
-// Read port from .env (default to 5000 if not set)
-const PORT = process.env.PORT || 5000;
+// Read port from .env — Replit Cloud Run expects 3000 in production
+const PORT = process.env.PORT || 3000;
 
 // Start listening for incoming requests
 app.listen(PORT, () => {
