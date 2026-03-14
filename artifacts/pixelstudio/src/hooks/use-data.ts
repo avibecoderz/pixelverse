@@ -143,7 +143,7 @@ function adaptClient(raw: any): AppClient {
     photos,
     photoCount,
     invoiceId:     raw.invoices?.[0]?.invoiceNumber ?? "",
-    galleryLink:   `/gallery/${raw.galleryToken}`,
+    galleryLink:   raw.galleryToken ? `/gallery/${raw.galleryToken}` : "",
     date:          raw.createdAt,
     staffId:       raw.createdBy?.id   ?? "",
     staffName:     raw.createdBy?.name ?? "",

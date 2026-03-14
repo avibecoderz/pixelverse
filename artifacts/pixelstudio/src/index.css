@@ -306,22 +306,20 @@
  * Also keeps the invoice layout clean on paper / PDF export.
  * ────────────────────────────────────────────────────────────────────────── */
 @media print {
-  /* Force SVG paths (the QR code squares) to print in black */
-  svg path,
-  svg rect {
-    fill: currentColor !important;
+  /*
+   * Tell the browser to preserve the QR code SVG's exact fill values
+   * (black modules on a white background) regardless of the "Background
+   * graphics" print setting.  We must NOT override individual SVG fills
+   * with currentColor — that would turn the white background squares
+   * black and make the QR code unreadable.
+   */
+  .gallery-qr-wrapper,
+  .gallery-qr-wrapper svg {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
 
-  /* The white padding around the QR code must remain white */
-  .gallery-qr-wrapper {
-    background-color: white !important;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
-  /* Remove page-level padding so the invoice fills the page */
+  /* Remove page-level padding so the invoice fills the paper */
   body {
     margin: 0;
     padding: 0;
