@@ -128,19 +128,26 @@ const errorMiddleware = (err, req, res, next) => { // eslint-disable-line no-unu
   // holds a reference to the record being changed.
   // e.g. trying to delete a staff member who still has linked payments
   // that were not caught by the pre-check in staffController.
+  //
+  // Note: err.meta.field_name contains the raw MySQL constraint name such as
+  // "payments_receivedById_fkey (index)" — not suitable for a user-facing
+  // message, so we always return a fixed generic response here.
   if (err.code === "P2003") {
-    const field = err.meta?.field_name || "a related record";
     return res.status(409).json({
       success: false,
-      message: `Cannot complete this action: ${field} is still referenced by other records. Remove the linked records first.`,
+      message: "Cannot complete this action because other records are still linked to this data. Remove or reassign them first.",
     });
   }
 
   // ── Prisma: null constraint violation ─────────────────────────────────────
   // Raised when a non-nullable column receives null — e.g. a required field
   // was omitted from a create/update call that bypassed the validate middleware.
+  //
+  // err.meta.constraint looks like "users.email" or "clients.clientName".
+  // We strip the table-name prefix and show only the field name.
   if (err.code === "P2011") {
-    const field = err.meta?.constraint || "a required field";
+    const raw   = err.meta?.constraint || "";
+    const field = raw.includes(".") ? raw.split(".").pop() : raw || "a required field";
     return res.status(400).json({
       success: false,
       message: `${field} is required and cannot be null`,
