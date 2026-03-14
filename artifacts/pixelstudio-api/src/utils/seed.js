@@ -96,12 +96,22 @@ async function seed() {
 }
 
 // ─── Run ──────────────────────────────────────────────────────────────────────
+//
+// exitCode is tracked here rather than calling process.exit(1) inside .catch().
+// If process.exit were called inside .catch(), the Node.js process would
+// terminate immediately — before the .finally() block had a chance to run —
+// and prisma.$disconnect() would never be called on error paths.
+// By deferring process.exit to the very end of .finally(), disconnect always
+// runs regardless of whether seed() succeeded or failed.
+
+let exitCode = 0;
 
 seed()
   .catch((err) => {
     console.error("Seeder failed:", err.message);
-    process.exit(1);
+    exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
+    process.exit(exitCode);
   });
