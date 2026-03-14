@@ -28,8 +28,8 @@ const prisma = new PrismaClient();
 
 const ADMIN = {
   name:     "Admin User",
-  email:    "admin@pixelstudio.com",
-  password: "admin123",
+  email:    "admin@pixel.com",
+  password: "admin01",
   phone:    "08000000000",   // placeholder — update via the app after first login
   role:     "ADMIN",
 };
