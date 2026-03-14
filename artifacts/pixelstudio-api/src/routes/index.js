@@ -11,23 +11,26 @@
 const express = require("express");
 const router  = express.Router();
 
-const authRoutes    = require("./authRoutes");
-const staffRoutes   = require("./staffRoutes");
-const clientRoutes  = require("./clientRoutes");
-const photoRoutes   = require("./photoRoutes");
-const invoiceRoutes = require("./invoiceRoutes");
-const paymentRoutes = require("./paymentRoutes");
-const galleryRoutes = require("./galleryRoutes");  // PUBLIC — no token needed
+const authRoutes      = require("./authRoutes");
+const staffRoutes     = require("./staffRoutes");
+const clientRoutes    = require("./clientRoutes");
+const photoRoutes     = require("./photoRoutes");
+const invoiceRoutes   = require("./invoiceRoutes");
+const paymentRoutes   = require("./paymentRoutes");
+const galleryRoutes   = require("./galleryRoutes");    // PUBLIC — no token needed
+const dashboardRoutes = require("./dashboardRoutes");
 
-router.use("/auth",     authRoutes);    // POST /api/auth/login
-                                        // GET  /api/auth/me               (protected)
-                                        // POST /api/auth/change-password  (protected)
-router.use("/staff",    staffRoutes);   // CRUD  /api/staff (admin only)
-router.use("/clients",  clientRoutes);  // CRUD  /api/clients
-                                        // POST  /api/clients/:clientId/photos (upload)
-router.use("/photos",   photoRoutes);   // DELETE /api/photos/:id
-router.use("/invoices", invoiceRoutes); // GET/POST /api/invoices
-router.use("/payments", paymentRoutes); // GET/PATCH /api/payments
-router.use("/gallery",  galleryRoutes); // GET  /api/gallery/:token (PUBLIC)
+router.use("/auth",      authRoutes);      // POST /api/auth/login
+                                           // GET  /api/auth/me               (protected)
+                                           // POST /api/auth/change-password  (protected)
+router.use("/staff",     staffRoutes);     // CRUD  /api/staff (admin only)
+router.use("/clients",   clientRoutes);    // CRUD  /api/clients
+                                           // POST  /api/clients/:clientId/photos (upload)
+router.use("/photos",    photoRoutes);     // DELETE /api/photos/:id
+router.use("/invoices",  invoiceRoutes);   // GET/POST /api/invoices
+router.use("/payments",  paymentRoutes);   // GET/PATCH /api/payments
+router.use("/gallery",   galleryRoutes);   // GET  /api/gallery/:token (PUBLIC)
+router.use("/dashboard", dashboardRoutes); // GET  /api/dashboard/admin (admin only)
+                                           // GET  /api/dashboard/staff (authenticated)
 
 module.exports = router;
