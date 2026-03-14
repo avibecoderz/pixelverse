@@ -9,7 +9,7 @@ id = "artifacts/mockup-sandbox"
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
-build = ["bash", "-c", "pnpm install --frozen-lockfile && pnpm --filter=./artifacts/pixelstudio-api run build && pnpm --filter=./artifacts/pixelstudio run build"]
+build = ["bash", "-c", "pnpm install --frozen-lockfile && pnpm run build"]
 run = ["bash", "-c", "NODE_ENV=production node artifacts/pixelstudio-api/src/server.js"]
 
 [deployment.postBuild]
