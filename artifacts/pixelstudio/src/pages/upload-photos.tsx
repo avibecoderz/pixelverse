@@ -8,17 +8,6 @@ import { ArrowLeft, UploadCloud, X, Check, Copy, Image as ImageIcon } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 
-const SAMPLE_URLS = [
-  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7?w=800&fit=crop',
-  'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?w=800&fit=crop',
-];
-
 export default function UploadPhotos() {
   const [, params] = useRoute("/staff/clients/:id/upload");
   const [, setLocation] = useLocation();
@@ -54,10 +43,8 @@ export default function UploadPhotos() {
       toast({ title: "No photos selected", description: "Please add at least one photo.", variant: "destructive" });
       return;
     }
-    // Map local previews to sample Unsplash URLs (mock — no real upload)
-    const photoUrls = files.map((_, i) => SAMPLE_URLS[i % SAMPLE_URLS.length]);
     try {
-      await uploadPhotos.mutateAsync({ id: client!.id, photoUrls });
+      await uploadPhotos.mutateAsync({ id: client!.id, files });
       setUploaded(true);
       toast({ title: "Photos uploaded!", description: "Gallery is now live for your client." });
     } catch {
