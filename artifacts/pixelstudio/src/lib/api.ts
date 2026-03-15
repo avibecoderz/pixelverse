@@ -351,6 +351,24 @@ export async function changePassword(
   });
 }
 
+/**
+ * Reset a user's password without requiring the old password.
+ * This is called at the end of the forgot-password OTP flow, after the user
+ * has successfully verified the OTP code on the client side.
+ *
+ * Usage:
+ *   await resetPassword("admin@pixelstudio.com", "mynewpassword");
+ */
+export async function resetPassword(
+  email:       string,
+  newPassword: string,
+): Promise<void> {
+  await apiFetch("/api/auth/reset-password", {
+    method: "POST",
+    body:   JSON.stringify({ email, newPassword }),
+  });
+}
+
 /** Remove the JWT from localStorage and end the user's session. */
 export function logout(): void {
   clearToken();

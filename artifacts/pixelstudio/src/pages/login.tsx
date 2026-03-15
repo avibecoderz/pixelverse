@@ -8,7 +8,8 @@ import {
   ImageIcon, CreditCard, AlertCircle, Mail, ArrowLeft, KeyRound, RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { login as apiLogin, getToken } from "@/lib/api";
+import { login as apiLogin, getToken, resetPassword as apiResetPassword } from "@/lib/api";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 type Role = "admin" | "staff";
 type ForgotStep = "email" | "otp" | "newpw";
@@ -120,16 +121,27 @@ export default function Login() {
     }
   };
 
-  const handleNewPwSubmit = (e: React.FormEvent) => {
+  const handleNewPwSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError("");
-    if (newPw.length < 6) { setForgotError("Password must be at least 6 characters."); return; }
+    if (newPw.length < 6)  { setForgotError("Password must be at least 6 characters."); return; }
     if (newPw !== confirmPw) { setForgotError("Passwords do not match."); return; }
-    // In a real implementation this would call a password-reset API endpoint.
-    // For this demo, we just show a success message.
-    toast({ title: "Password reset!", description: "Contact your system administrator to reset your password." });
-    setForgotMode(false);
-    resetForgot();
+
+    setForgotLoading(true);
+    try {
+      await apiResetPassword(recoveryEmail.trim(), newPw);
+      toast({
+        title:       "Password reset successfully!",
+        description: `You can now sign in with your new password.`,
+      });
+      setForgotMode(false);
+      resetForgot();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Reset failed. Please try again.";
+      setForgotError(msg);
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -323,9 +335,25 @@ export default function Login() {
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <Label className="text-sm font-semibold text-slate-700">Enter OTP Code</Label>
-                    <Input type="text" inputMode="numeric" maxLength={6} placeholder="6-digit code" value={otpInput} onChange={e => { setOtpInput(e.target.value.replace(/\D/g, "")); setForgotError(""); }} className="h-12 text-center text-xl font-mono tracking-widest" required />
+                    <div className="flex justify-center">
+                      <InputOTP
+                        maxLength={6}
+                        value={otpInput}
+                        onChange={val => { setOtpInput(val); setForgotError(""); }}
+                      >
+                        <InputOTPGroup>
+                          {[0, 1, 2, 3, 4, 5].map(i => (
+                            <InputOTPSlot
+                              key={i}
+                              index={i}
+                              className="w-12 h-12 text-xl font-bold font-mono"
+                            />
+                          ))}
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </div>
                   </div>
                   {forgotError && <div className="flex items-center gap-2.5 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3.5"><AlertCircle className="w-4 h-4 shrink-0" />{forgotError}</div>}
                   <Button type="submit" size="lg" className="w-full h-12 font-bold">Verify Code</Button>
@@ -336,7 +364,7 @@ export default function Login() {
               {forgotStep === "newpw" && (
                 <form onSubmit={handleNewPwSubmit} className="space-y-5">
                   <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-center gap-2.5 text-sm text-emerald-700 font-medium">
-                    <CheckCircle className="w-4 h-4 shrink-0" /> Identity verified! Contact your administrator with the new password below.
+                    <CheckCircle className="w-4 h-4 shrink-0" /> Identity verified! Choose a new password for <span className="font-bold">{recoveryEmail}</span>.
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-slate-700">New Password</Label>
@@ -352,8 +380,10 @@ export default function Login() {
                     <Input type="password" placeholder="Repeat new password" value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setForgotError(""); }} className="h-12 text-base" required />
                   </div>
                   {forgotError && <div className="flex items-center gap-2.5 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3.5"><AlertCircle className="w-4 h-4 shrink-0" />{forgotError}</div>}
-                  <Button type="submit" size="lg" className="w-full h-12 font-bold gap-2">
-                    <KeyRound className="w-4 h-4" /> Confirm Reset
+                  <Button type="submit" size="lg" disabled={forgotLoading} className="w-full h-12 font-bold gap-2">
+                    {forgotLoading
+                      ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Resetting...</span>
+                      : <span className="flex items-center gap-2"><KeyRound className="w-4 h-4" />Confirm Reset</span>}
                   </Button>
                 </form>
               )}

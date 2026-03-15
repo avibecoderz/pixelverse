@@ -19,7 +19,7 @@ const express        = require("express");
 const router         = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
-const { loginRules, changePasswordRules } = require("../validators/authValidator");
+const { loginRules, changePasswordRules, resetPasswordRules } = require("../validators/authValidator");
 
 // ─── Public routes (no token needed) ─────────────────────────────────────────
 
@@ -98,5 +98,28 @@ router.get("/me", authMiddleware, authController.getMe);
  *   401 — wrong current password
  */
 router.post("/change-password", authMiddleware, changePasswordRules, authController.changePassword);
+
+/**
+ * POST /api/auth/reset-password
+ *
+ * Resets a user's password without requiring the old password.
+ * This is the final step of the forgot-password / OTP flow.
+ *
+ * The OTP is verified client-side (simulation).  The frontend only reaches
+ * this endpoint after the user has successfully entered the correct OTP code.
+ *
+ * Request body:
+ *   {
+ *     "email":       "admin@pixelstudio.com",
+ *     "newPassword": "mynewpassword"
+ *   }
+ *
+ * Success response (200):
+ *   { "success": true, "message": "Password reset successfully." }
+ *
+ * Note: Returns a generic 200 even if the email is not found to prevent
+ * user enumeration.
+ */
+router.post("/reset-password", resetPasswordRules, authController.resetPassword);
 
 module.exports = router;

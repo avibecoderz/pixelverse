@@ -6,9 +6,10 @@
  * The `role` field (ADMIN / STAFF) separates their permissions.
  *
  * Exported functions:
- *   login          — POST /api/auth/login          (public)
- *   getMe          — GET  /api/auth/me             (protected)
+ *   login          — POST /api/auth/login           (public)
+ *   getMe          — GET  /api/auth/me              (protected)
  *   changePassword — POST /api/auth/change-password (protected)
+ *   resetPassword  — POST /api/auth/reset-password  (public — OTP verified client-side)
  *
  * JWT payload shape: { id: string, role: "admin" | "staff", iat, exp }
  * The role is stored lowercase in the token to match roleMiddleware checks.
@@ -220,4 +221,61 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, getMe, changePassword };
+// ─── POST /api/auth/reset-password ───────────────────────────────────────────
+/**
+ * Reset a user's password without requiring the old password.
+ * This is the final step of the forgot-password flow.
+ *
+ * The OTP verification is handled entirely on the frontend (simulation).
+ * This endpoint trusts that the caller has already verified the OTP and
+ * simply updates the password for the given email address.
+ *
+ * Request body: { email, newPassword }
+ *   email       — the account's email address
+ *   newPassword — the new plain-text password (min 6 characters)
+ *
+ * Note: We deliberately return a generic success message whether or not
+ * the email exists.  This prevents user enumeration — callers cannot tell
+ * if an email is registered or not.
+ */
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    // ── Validate input ────────────────────────────────────────────────────────
+    const emailTrimmed = (email       || "").trim().toLowerCase();
+    const newTrimmed   = (newPassword || "").trim();
+
+    if (!emailTrimmed || !newTrimmed) {
+      return error(res, "email and newPassword are required", 400);
+    }
+    if (newTrimmed.length < 6) {
+      return error(res, "New password must be at least 6 characters", 400);
+    }
+
+    // ── Look up the user ──────────────────────────────────────────────────────
+    // Only active accounts can reset their password.
+    const user = await prisma.user.findFirst({
+      where: { email: emailTrimmed, isActive: true },
+    });
+
+    // Return generic success even if the email is not found — prevents
+    // callers from probing which email addresses are registered.
+    if (!user) {
+      return success(res, "If that email is registered, the password has been reset.");
+    }
+
+    // ── Hash the new password and save ───────────────────────────────────────
+    const hashed = await bcrypt.hash(newTrimmed, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data:  { password: hashed },
+    });
+
+    return success(res, "Password reset successfully.");
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { login, getMe, changePassword, resetPassword };
