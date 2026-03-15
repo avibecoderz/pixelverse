@@ -39,14 +39,32 @@ const allowedOrigins = [
   "http://localhost:3000",           // fallback
 ].filter(Boolean); // remove undefined/null entries
 
+const isPrivateDevOrigin = (origin) => {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== "http:" && protocol !== "https:") return false;
+
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+      /^192\.168\.\d+\.\d+$/.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(hostname)
+    );
+  } catch {
+    return false;
+  }
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no Origin header (Postman, curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      // Allow any localhost port in all environments (Vite dev, tests, curl)
-      if (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
+      // Allow localhost and private-network dev hosts in all environments.
+      // This covers normal local Vite usage plus LAN access from another device.
+      if (isPrivateDevOrigin(origin)) {
         return callback(null, true);
       }
 

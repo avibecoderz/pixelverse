@@ -134,12 +134,12 @@ export default function InvoicePreview() {
                   <div className="bg-primary p-2 rounded-lg">
                     <Camera className="w-5 h-5 text-white" />
                   </div>
-                  PixelStudio
+                  GBSM Photography Studio
                 </div>
                 <div className="space-y-1 text-slate-500 text-sm">
-                  <p>14 Admiralty Way, Lekki Phase 1</p>
-                  <p>Lagos, Nigeria</p>
-                  <p className="mt-1.5 font-medium text-slate-600">hello@pixelstudio.ng</p>
+                  <p>No 16, Sauna Kawaji Nasarawa</p>
+                  <p>Kano State, Nigeria</p>
+                  <p className="mt-1.5 font-medium text-slate-600">gbsmphotography@gmail.com</p>
                 </div>
               </div>
               <div className="text-right">
@@ -261,11 +261,11 @@ export default function InvoicePreview() {
             {/* ── Footer ──────────────────────────────────────────────── */}
             <div className="mt-20 pt-8 border-t-2 border-slate-100 text-center text-slate-500 text-sm space-y-1">
               <p className="font-medium text-slate-600">
-                Thank you for choosing PixelStudio for your photography needs.
+                Thank you for choosing GBSM for your photography needs.
               </p>
               <p>
                 Questions? Contact us at{" "}
-                <span className="text-primary font-semibold">hello@pixelstudio.ng</span>
+                <span className="text-primary font-semibold">gbsmphotography@gmail.com</span>
               </p>
             </div>
 

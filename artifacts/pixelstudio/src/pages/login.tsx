@@ -156,7 +156,7 @@ export default function Login() {
             <div className="bg-primary/20 p-3 rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-primary/30 backdrop-blur-sm">
               <Camera className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-4xl font-display font-bold tracking-tight">PixelStudio</h1>
+            <h3 className="text-4xl font-display font-bold tracking-tight">GBSM Photography Studio</h3>
           </div>
           <h2 className="text-5xl font-display font-bold leading-tight mb-8">Elevate your studio management.</h2>
           <div className="space-y-5 mb-12">
@@ -390,7 +390,7 @@ export default function Login() {
             </div>
           )}
 
-          <p className="text-center text-sm text-slate-400">© {new Date().getFullYear()} PixelStudio SaaS. All rights reserved.</p>
+          <p className="text-center text-sm text-slate-400">© {new Date().getFullYear()} GBSM Photography Studio . by <a href="#">oralbits Technologies ltd.</a></p>
         </div>
       </div>
     </div>

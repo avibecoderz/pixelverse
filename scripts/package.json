@@ -4,11 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "pnpm run dev:web",
+    "dev:web": "pnpm --filter web dev",
+    "dev:admin": "pnpm --filter admin dev",
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:"
+    "tsx": "catalog:",
+    "typescript": "^5.0.0"
   }
 }
