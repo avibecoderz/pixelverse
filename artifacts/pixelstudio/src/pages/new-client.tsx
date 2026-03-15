@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { Check, FileText, UploadCloud, Copy, WifiOff } from "lucide-react";
+import { Check, FileText, UploadCloud, Copy, WifiOff, Printer } from "lucide-react";
 import { putSyncEntry } from "@/lib/offline-db";
 import { useSyncContext } from "@/hooks/use-sync-context";
 import type { AppClient } from "@/hooks/use-data";
@@ -188,6 +188,14 @@ export default function NewClient() {
     toast({ title: "Copied!", description: "Gallery link copied to clipboard." });
   };
 
+  // For offline clients, persist the local data so the invoice page can render
+  // it without an API call.  The invoice page detects "local_" IDs and reads
+  // from sessionStorage instead.
+  const openOfflineInvoice = (client: AppClient) => {
+    sessionStorage.setItem(`offline-invoice-${client.id}`, JSON.stringify(client));
+    setLocation(`/staff/clients/${client.id}/invoice`);
+  };
+
   // ── Success screen ──────────────────────────────────────────────────────────
   if (successData) {
     return (
@@ -263,11 +271,19 @@ export default function NewClient() {
             )}
           </CardContent>
 
-          <CardFooter className="bg-slate-50 border-t p-5 flex gap-3">
+          <CardFooter className="bg-slate-50 border-t p-5 flex gap-3 flex-wrap">
             <Button variant="outline" className="flex-1 bg-white" onClick={() => setLocation("/staff/clients")}>
               View All Clients
             </Button>
-            {!isOfflineSave && (
+            {isOfflineSave ? (
+              // Offline clients: show invoice print button using locally-stored data
+              <Button
+                className="flex-1 gap-2 shadow-md bg-amber-600 hover:bg-amber-700"
+                onClick={() => openOfflineInvoice(successData)}
+              >
+                <Printer className="w-4 h-4" /> Print Invoice
+              </Button>
+            ) : (
               <>
                 <Button
                   className="flex-1 gap-2 shadow-md"
