@@ -280,23 +280,29 @@ export function useCreateClient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: {
-      clientName:    string;
-      phone:         string;
-      price:         number;
-      photoFormat?:  AppClient["photoFormat"];
-      notes?:        string;
-      staffId?:      string;  // ignored — backend sets this from the JWT
-      staffName?:    string;  // ignored — backend reads from user record
-      paymentStatus?: AppClient["paymentStatus"]; // ignored — always starts PENDING
-      orderStatus?:   AppClient["orderStatus"];   // ignored — always starts PENDING
-      photos?:        string[];                   // ignored — use uploadPhotos hook
+      clientName:     string;
+      phone:          string;
+      price:          number;
+      photoFormat?:   AppClient["photoFormat"];
+      orderStatus?:   AppClient["orderStatus"];
+      paymentStatus?: AppClient["paymentStatus"];
+      notes?:         string;
+      staffId?:       string; // ignored — backend sets this from the JWT
+      staffName?:     string; // ignored — backend reads from user record
+      photos?:        string[]; // ignored — use uploadPhotos hook
     }) => {
       const raw = await createClient({
-        clientName:  data.clientName,
-        phone:       data.phone,
-        price:       data.price,
-        photoFormat: data.photoFormat
+        clientName:    data.clientName,
+        phone:         data.phone,
+        price:         data.price,
+        photoFormat:   data.photoFormat
           ? PHOTO_FORMAT_API[data.photoFormat]
+          : undefined,
+        orderStatus:   data.orderStatus
+          ? ORDER_STATUS_API[data.orderStatus]
+          : undefined,
+        paymentStatus: data.paymentStatus
+          ? PAY_STATUS_API[data.paymentStatus]
           : undefined,
         notes: data.notes,
       });

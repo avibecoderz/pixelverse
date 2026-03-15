@@ -167,10 +167,15 @@ const getClientById = async (req, res, next) => {
  * The logged-in user (staff or admin) is automatically set as the creator via JWT.
  *
  * Required body fields: { clientName, phone, price }
- * Optional body fields: { photoFormat, notes }
+ * Optional body fields: { photoFormat, orderStatus, paymentStatus, notes }
  *
- * paymentStatus and orderStatus always start as PENDING — they are managed
- * by the payments module and order status updates respectively.
+ * orderStatus — defaults to PENDING. Can be set on create so clients that are
+ *   already in progress (editing, ready, etc.) are recorded correctly from day one.
+ *
+ * paymentStatus — defaults to PENDING. Can be set to PAID on create for clients
+ *   who paid cash before the record was entered into the system.  This path does
+ *   NOT create a payment audit record — if a full audit trail is needed, use
+ *   POST /api/payments/:clientId after creation instead.
  *
  * A 32-character hex galleryToken is generated here and stored on the client.
  * It is later reused as gallery.token when photos are first uploaded.
@@ -203,6 +208,20 @@ const createClient = async (req, res, next) => {
       return error(res, `photoFormat must be one of: ${VALID_PHOTO_FORMATS.join(", ")}`, 400);
     }
 
+    // ── orderStatus ───────────────────────────────────────────────────────────
+    // Optional — defaults to PENDING. Validated when provided.
+    const resolvedOrderStatus = req.body.orderStatus || "PENDING";
+    if (!VALID_ORDER_STATUSES.includes(resolvedOrderStatus)) {
+      return error(res, `orderStatus must be one of: ${VALID_ORDER_STATUSES.join(", ")}`, 400);
+    }
+
+    // ── paymentStatus ─────────────────────────────────────────────────────────
+    // Optional — defaults to PENDING. Validated when provided.
+    const resolvedPaymentStatus = req.body.paymentStatus || "PENDING";
+    if (!VALID_PAYMENT_STATUSES.includes(resolvedPaymentStatus)) {
+      return error(res, `paymentStatus must be one of: ${VALID_PAYMENT_STATUSES.join(", ")}`, 400);
+    }
+
     // ── Gallery token ─────────────────────────────────────────────────────────
     // 16 random bytes → 32-character hex string. Cryptographically secure —
     // extremely unlikely to collide even with thousands of clients.
@@ -213,11 +232,13 @@ const createClient = async (req, res, next) => {
       data: {
         clientName,
         phone,
-        price:       parsedPrice,
-        photoFormat: resolvedFormat,
-        notes:       normaliseText(req.body.notes), // blank/null → stored as null
+        price:         parsedPrice,
+        photoFormat:   resolvedFormat,
+        orderStatus:   resolvedOrderStatus,
+        paymentStatus: resolvedPaymentStatus,
+        notes:         normaliseText(req.body.notes), // blank/null → stored as null
         galleryToken,
-        createdById: req.user.id, // always from JWT — body cannot override this
+        createdById:   req.user.id, // always from JWT — body cannot override this
       },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },

@@ -114,18 +114,22 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         try {
           if (entry.type === "createClient") {
             const p = entry.payload as {
-              clientName:  string;
-              phone:       string;
-              price:       number;
-              photoFormat: "SOFTCOPY" | "HARDCOPY" | "BOTH";
-              notes:       string;
+              clientName:    string;
+              phone:         string;
+              price:         number;
+              photoFormat:   "SOFTCOPY" | "HARDCOPY" | "BOTH";
+              orderStatus?:  "PENDING" | "EDITING" | "READY" | "DELIVERED";
+              paymentStatus?: "PENDING" | "PAID";
+              notes:         string;
             };
             await createClient({
-              clientName:  p.clientName,
-              phone:       p.phone,
-              price:       p.price,
-              photoFormat: p.photoFormat,
-              notes:       p.notes,
+              clientName:    p.clientName,
+              phone:         p.phone,
+              price:         p.price,
+              photoFormat:   p.photoFormat,
+              orderStatus:   p.orderStatus,
+              paymentStatus: p.paymentStatus,
+              notes:         p.notes,
             });
           }
 

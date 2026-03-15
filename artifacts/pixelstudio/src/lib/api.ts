@@ -486,11 +486,13 @@ export async function deleteStaff(staffId: string): Promise<void> {
  *   });
  */
 export async function createClient(data: {
-  clientName:   string;
-  phone:        string;
-  price:        number;
-  photoFormat?: "SOFTCOPY" | "HARDCOPY" | "BOTH";
-  notes?:       string;
+  clientName:    string;
+  phone:         string;
+  price:         number;
+  photoFormat?:  "SOFTCOPY" | "HARDCOPY" | "BOTH";
+  orderStatus?:  Client["orderStatus"];
+  paymentStatus?: Client["paymentStatus"];
+  notes?:        string;
 }): Promise<Client> {
   return apiFetch<Client>("/api/clients", {
     method: "POST",

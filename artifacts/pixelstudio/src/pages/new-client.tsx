@@ -17,11 +17,23 @@ import { useSyncContext } from "@/hooks/use-sync-context";
 import type { AppClient } from "@/hooks/use-data";
 
 // ── Enum maps ─────────────────────────────────────────────────────────────────
-// UI display value → backend UPPERCASE enum (mirrors PHOTO_FORMAT_API in use-data.ts)
+// UI display values → backend UPPERCASE enums (mirror the maps in use-data.ts)
 const PHOTO_FORMAT_API: Record<string, string> = {
   Softcopy: "SOFTCOPY",
   Hardcopy: "HARDCOPY",
   Both:     "BOTH",
+};
+
+const ORDER_STATUS_API: Record<string, string> = {
+  Pending:   "PENDING",
+  Editing:   "EDITING",
+  Ready:     "READY",
+  Delivered: "DELIVERED",
+};
+
+const PAY_STATUS_API: Record<string, string> = {
+  Pending: "PENDING",
+  Paid:    "PAID",
 };
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -46,11 +58,13 @@ async function saveOffline(values: ClientFormValues): Promise<AppClient> {
   const createdAt = new Date().toISOString();
 
   const payload = {
-    clientName:  values.clientName,
-    phone:       values.phone,
-    price:       values.price,
-    photoFormat: PHOTO_FORMAT_API[values.photoFormat] ?? "SOFTCOPY",
-    notes:       values.notes || "",
+    clientName:    values.clientName,
+    phone:         values.phone,
+    price:         values.price,
+    photoFormat:   PHOTO_FORMAT_API[values.photoFormat] ?? "SOFTCOPY",
+    orderStatus:   ORDER_STATUS_API[values.orderStatus]  ?? "PENDING",
+    paymentStatus: PAY_STATUS_API[values.paymentStatus]  ?? "PENDING",
+    notes:         values.notes || "",
   };
 
   const localClient: AppClient = {
