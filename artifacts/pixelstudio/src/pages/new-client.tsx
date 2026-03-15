@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useCreateClient } from "@/hooks/use-data";
+import {
+  useCreateClient,
+  PHOTO_FORMAT_API,
+  ORDER_STATUS_API,
+  PAY_STATUS_API,
+} from "@/hooks/use-data";
+import type { AppClient } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,27 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Check, FileText, UploadCloud, Copy, WifiOff, Printer } from "lucide-react";
 import { putSyncEntry } from "@/lib/offline-db";
 import { useSyncContext } from "@/hooks/use-sync-context";
-import type { AppClient } from "@/hooks/use-data";
-
-// ── Enum maps ─────────────────────────────────────────────────────────────────
-// UI display values → backend UPPERCASE enums (mirror the maps in use-data.ts)
-const PHOTO_FORMAT_API: Record<string, string> = {
-  Softcopy: "SOFTCOPY",
-  Hardcopy: "HARDCOPY",
-  Both:     "BOTH",
-};
-
-const ORDER_STATUS_API: Record<string, string> = {
-  Pending:   "PENDING",
-  Editing:   "EDITING",
-  Ready:     "READY",
-  Delivered: "DELIVERED",
-};
-
-const PAY_STATUS_API: Record<string, string> = {
-  Pending: "PENDING",
-  Paid:    "PAID",
-};
 
 // ── Schema ───────────────────────────────────────────────────────────────────
 const clientSchema = z.object({

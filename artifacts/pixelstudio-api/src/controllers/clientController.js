@@ -259,9 +259,12 @@ const createClient = async (req, res, next) => {
  * Staff can update:  clientName, phone, price, photoFormat, orderStatus, notes
  * Admin can also update: paymentStatus
  *
- * paymentStatus is restricted from staff because it is managed by the payments
- * module — calling POST /api/payments/:clientId updates it automatically.
- * Allowing staff to set it directly would bypass that audit trail.
+ * paymentStatus is restricted from staff on UPDATE because ongoing changes are
+ * managed by the payments module — POST /api/payments/:clientId records money
+ * received and updates the status automatically, maintaining a full audit trail.
+ * Note: paymentStatus CAN be set by both staff and admin on initial CREATE (see
+ * createClient) because there is no prior audit trail to protect at that point —
+ * it covers the case where a client paid cash before the record was entered.
  *
  * Fields that can never be changed: galleryToken, createdById, createdAt.
  */

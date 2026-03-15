@@ -165,10 +165,12 @@ function adaptPayment(raw: any): AppPayment {
 }
 
 // ─── Reverse maps (UI → Backend) for create/update mutations ─────────────────
+// Exported so pages (e.g. new-client.tsx) can convert form values to API enums
+// without defining the same map twice.
 
-const PHOTO_FORMAT_API = { Softcopy: "SOFTCOPY", Hardcopy: "HARDCOPY", Both: "BOTH" } as const;
-const ORDER_STATUS_API  = { Pending: "PENDING", Editing: "EDITING", Ready: "READY", Delivered: "DELIVERED" } as const;
-const PAY_STATUS_API    = { Pending: "PENDING", Paid: "PAID" } as const;
+export const PHOTO_FORMAT_API = { Softcopy: "SOFTCOPY", Hardcopy: "HARDCOPY", Both: "BOTH" } as const;
+export const ORDER_STATUS_API  = { Pending: "PENDING", Editing: "EDITING", Ready: "READY", Delivered: "DELIVERED" } as const;
+export const PAY_STATUS_API    = { Pending: "PENDING", Paid: "PAID" } as const;
 
 // ─── Staff Hooks ──────────────────────────────────────────────────────────────
 

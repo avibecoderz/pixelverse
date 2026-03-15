@@ -482,7 +482,10 @@ export async function deleteStaff(staffId: string): Promise<void> {
  * Usage:
  *   const client = await createClient({
  *     clientName: "Ngozi Okonkwo", phone: "08123456789",
- *     price: 150000, photoFormat: "SOFTCOPY", notes: "Wedding shoot"
+ *     price: 150000, photoFormat: "SOFTCOPY",
+ *     orderStatus: "EDITING",    // optional — defaults to PENDING
+ *     paymentStatus: "PAID",     // optional — defaults to PENDING
+ *     notes: "Wedding shoot",
  *   });
  */
 export async function createClient(data: {
