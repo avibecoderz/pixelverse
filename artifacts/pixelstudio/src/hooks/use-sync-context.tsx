@@ -1,23 +1,23 @@
+// @refresh reset
 /**
  * use-sync-context.tsx — Global sync state for PixelStudio
  *
  * Provides:
- *   isOnline      — live network status
- *   pendingCount  — number of operations waiting to be synced
- *   syncStatus    — "idle" | "syncing" | "done" | "error"
- *   lastError     — error message from the last failed sync attempt
- *   triggerSync() — manually kick off a sync pass
+ *   isOnline             — live network status (from useOnlineStatus)
+ *   pendingCount         — number of operations waiting to be synced
+ *   syncStatus           — "idle" | "syncing" | "done" | "error"
+ *   lastError            — error message from the last failed sync attempt
+ *   triggerSync()        — manually kick off a sync pass
+ *   refreshPendingCount() — re-read the pending count from IndexedDB
  *
  * Auto-sync behaviour:
  *   When the browser fires the "online" event (i.e. connectivity restored),
  *   we wait 800 ms to let the network stabilise, then trigger sync automatically.
  *
- * Usage:
- *   // In App.tsx — wrap once at the root:
- *   <SyncProvider><App /></SyncProvider>
- *
- *   // In any component:
- *   const { isOnline, pendingCount, syncStatus, triggerSync } = useSyncContext();
+ * The "// @refresh reset" directive above tells Vite to do a full page reset
+ * when this file changes during development.  This file mixes a React component
+ * (SyncProvider) with a hook (useSyncContext), which prevents Fast Refresh from
+ * doing a component-level hot swap — a full reset is the correct fallback.
  */
 
 import React, {
@@ -30,6 +30,7 @@ import React, {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   getPendingEntries,
   patchSyncEntry,
@@ -43,22 +44,22 @@ import { createClient } from "@/lib/api";
 export type SyncStatus = "idle" | "syncing" | "done" | "error";
 
 interface SyncContextValue {
-  isOnline:    boolean;
-  pendingCount: number;
-  syncStatus:  SyncStatus;
-  lastError:   string | null;
-  triggerSync: () => Promise<void>;
+  isOnline:            boolean;
+  pendingCount:        number;
+  syncStatus:          SyncStatus;
+  lastError:           string | null;
+  triggerSync:         () => Promise<void>;
   refreshPendingCount: () => Promise<void>;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 const SyncContext = createContext<SyncContextValue>({
-  isOnline:    true,
-  pendingCount: 0,
-  syncStatus:  "idle",
-  lastError:   null,
-  triggerSync: async () => {},
+  isOnline:            true,
+  pendingCount:        0,
+  syncStatus:          "idle",
+  lastError:           null,
+  triggerSync:         async () => {},
   refreshPendingCount: async () => {},
 });
 
@@ -69,36 +70,43 @@ export function useSyncContext(): SyncContextValue {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function SyncProvider({ children }: { children: React.ReactNode }) {
-  const qc             = useQueryClient();
-  const [isOnline,      setIsOnline]      = useState(navigator.onLine);
-  const [pendingCount,  setPendingCount]  = useState(0);
-  const [syncStatus,    setSyncStatus]    = useState<SyncStatus>("idle");
-  const [lastError,     setLastError]     = useState<string | null>(null);
-  const syncLock = useRef(false); // prevent concurrent sync runs
-  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const qc = useQueryClient();
 
-  // ── Count helper ────────────────────────────────────────────────────────────
+  // Delegate online/offline detection to the dedicated hook — avoids
+  // duplicating event-listener logic that already lives in use-online-status.ts
+  const isOnline = useOnlineStatus();
+
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncStatus,   setSyncStatus]   = useState<SyncStatus>("idle");
+  const [lastError,    setLastError]    = useState<string | null>(null);
+
+  const syncLock   = useRef(false); // prevent concurrent sync runs
+  const doneTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevOnline = useRef(isOnline); // tracks the previous online state
+
+  // ── Pending count helper ─────────────────────────────────────────────────
   const refreshPendingCount = useCallback(async () => {
     const n = await countByStatus("pending");
     setPendingCount(n);
   }, []);
 
-  // ── Sync logic ───────────────────────────────────────────────────────────────
+  // ── Core sync logic ──────────────────────────────────────────────────────
   const triggerSync = useCallback(async () => {
     if (syncLock.current || !navigator.onLine) return;
+
+    // Read pending items first — only start "syncing" state if there is
+    // actually something to send. Avoids a brief spinner flash when called
+    // with an empty queue.
+    const pending = await getPendingEntries();
+    if (pending.length === 0) return;
+
     syncLock.current = true;
     setSyncStatus("syncing");
     setLastError(null);
 
     try {
-      const pending = await getPendingEntries();
-      if (pending.length === 0) {
-        setSyncStatus("idle");
-        syncLock.current = false;
-        return;
-      }
-
-      let anyFailed = false;
+      let anySucceeded = false;
+      let anyFailed    = false;
 
       for (const entry of pending) {
         await patchSyncEntry(entry.id, { status: "syncing" });
@@ -125,27 +133,29 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
             status:   "done",
             syncedAt: Date.now(),
           });
+          anySucceeded = true;
         } catch (err: unknown) {
           anyFailed = true;
           const msg = err instanceof Error ? err.message : "Unknown error";
-          // Mark failed but keep as "pending" so it retries next time
+          // Reset to "pending" (with error note) so the entry retries next time
           await patchSyncEntry(entry.id, { status: "pending", error: msg });
         }
       }
 
-      // Refresh server data so the client list reflects synced records
-      await qc.invalidateQueries({ queryKey: ["clients"] });
-      // Clean up successfully synced entries
-      await clearDoneEntries();
+      // Only clean up and refresh the client list if at least one entry succeeded
+      if (anySucceeded) {
+        await clearDoneEntries();
+        await qc.invalidateQueries({ queryKey: ["clients"] });
+      }
+
       await refreshPendingCount();
 
       if (anyFailed) {
-        const failedMsg = "Some records couldn't sync. Will retry when online.";
         setSyncStatus("error");
-        setLastError(failedMsg);
+        setLastError("Some records couldn't sync. Will retry when online.");
       } else {
         setSyncStatus("done");
-        // Auto-reset "done" back to "idle" after 3 s
+        // Auto-reset "done" → "idle" after 3 s
         if (doneTimer.current) clearTimeout(doneTimer.current);
         doneTimer.current = setTimeout(() => setSyncStatus("idle"), 3000);
       }
@@ -154,34 +164,48 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setSyncStatus("error");
       setLastError(msg);
     } finally {
+      // Always release the lock — whether sync succeeded, partially failed,
+      // or threw an unexpected error.
       syncLock.current = false;
     }
   }, [qc, refreshPendingCount]);
 
-  // ── Online / offline listeners ───────────────────────────────────────────────
+  // ── React to online/offline transitions ──────────────────────────────────
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      // Wait 800 ms for the network to stabilise before syncing
-      setTimeout(() => triggerSync(), 800);
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      setSyncStatus("idle"); // Clear any in-progress indicator
-    };
+    const wasOnline = prevOnline.current;
+    prevOnline.current = isOnline;
 
-    window.addEventListener("online",  handleOnline);
-    window.addEventListener("offline", handleOffline);
+    // Declare the reconnect timer here so the cleanup below can always cancel it,
+    // regardless of which branch was taken.  This keeps all code paths consistent
+    // and satisfies TypeScript's "not all paths return a value" check.
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
-    // Seed the pending count on mount
-    refreshPendingCount();
+    if (isOnline && !wasOnline) {
+      // Just came back online — wait 800 ms for the network to stabilise
+      reconnectTimer = setTimeout(() => triggerSync(), 800);
+    }
+
+    if (!isOnline) {
+      // Just went offline — clear any transient sync status from the header
+      setSyncStatus("idle");
+    }
 
     return () => {
-      window.removeEventListener("online",  handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      if (reconnectTimer !== undefined) clearTimeout(reconnectTimer);
+    };
+  }, [isOnline, triggerSync]);
+
+  // ── Seed pending count on mount ───────────────────────────────────────────
+  useEffect(() => {
+    refreshPendingCount();
+  }, [refreshPendingCount]);
+
+  // ── Cleanup ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
       if (doneTimer.current) clearTimeout(doneTimer.current);
     };
-  }, [triggerSync, refreshPendingCount]);
+  }, []);
 
   return (
     <SyncContext.Provider value={{

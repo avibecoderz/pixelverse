@@ -115,10 +115,7 @@ export default function NewClient() {
     try {
       const result = await createClient.mutateAsync({
         ...values,
-        notes:     values.notes || "",
-        photos:    [],
-        staffId:   "s1",
-        staffName: localStorage.getItem("user_name") || "Staff Member",
+        notes: values.notes || "",
       });
       setIsOfflineSave(false);
       setSuccessData(result);
