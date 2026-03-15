@@ -120,8 +120,64 @@ export default function NewClient() {
       setIsOfflineSave(false);
       setSuccessData(result);
       toast({ title: "Client record created!", description: "You can now upload photos for this client." });
-    } catch {
-      toast({ title: "Error", description: "Failed to create client", variant: "destructive" });
+    } catch (err: unknown) {
+      // If the network is actually unreachable (navigator.onLine can be wrong —
+      // e.g. the device is on Wi-Fi but the internet is down), fall back to the
+      // same offline-save path so the record is never lost.
+      const isNetworkError =
+        !navigator.onLine ||
+        (err instanceof TypeError && /fetch|network|failed/i.test(err.message)) ||
+        (err instanceof Error && /network|offline|ECONNREFUSED|ERR_NETWORK/i.test(err.message));
+
+      if (isNetworkError) {
+        const localId   = `local_${Date.now()}`;
+        const createdAt = new Date().toISOString();
+
+        const payload = {
+          clientName:  values.clientName,
+          phone:       values.phone,
+          price:       values.price,
+          photoFormat: PHOTO_FORMAT_API[values.photoFormat] ?? "SOFTCOPY",
+          notes:       values.notes || "",
+        };
+
+        const localClient: AppClient = {
+          id:            localId,
+          clientName:    values.clientName,
+          phone:         values.phone,
+          price:         values.price,
+          photoFormat:   values.photoFormat,
+          paymentStatus: values.paymentStatus,
+          orderStatus:   values.orderStatus,
+          notes:         values.notes || "",
+          photos:        [],
+          photoCount:    0,
+          invoiceId:     "",
+          galleryLink:   "",
+          date:          createdAt,
+          staffId:       "",
+          staffName:     localStorage.getItem("user_name") || "Staff Member",
+        };
+
+        await putSyncEntry({
+          id:        localId,
+          type:      "createClient",
+          payload,
+          localData: localClient as unknown as Record<string, unknown>,
+          status:    "pending",
+          createdAt: Date.now(),
+        });
+
+        await refreshPendingCount();
+        setIsOfflineSave(true);
+        setSuccessData(localClient);
+        toast({
+          title:       "Saved offline",
+          description: "Connection unavailable. Record queued — will sync automatically.",
+        });
+      } else {
+        toast({ title: "Error", description: "Failed to create client. Please try again.", variant: "destructive" });
+      }
     }
   };
 
