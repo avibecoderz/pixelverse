@@ -32,17 +32,19 @@ export default defineConfig({
     runtimeErrorOverlay(),
 
     // ── PWA / Service Worker ───────────────────────────────────────────────────
-    // The service worker is enabled in BOTH development and production so that
-    // the offline experience works during development testing.
+    // In development, /public/sw.js is registered manually in main.tsx so the
+    // offline-save-and-sync flow can be tested without a production build.
+    // devOptions.enabled is therefore set to false to avoid a conflict.
     //
-    // What the SW does:
+    // In production this plugin generates a full pre-cache manifest and injects
+    // its own registration script into the HTML.  The generated SW:
     //   1. Pre-caches all compiled JS/CSS/HTML on first load (app shell)
     //   2. Caches API GET responses so existing data appears when offline
     //   3. Serves cached assets when the network is unavailable
     //   4. Falls back to index.html for any navigation request that misses
     //      cache, so React Router still controls SPA routing while offline
     //
-    // New write operations (create client etc.) are NOT intercepted by the SW —
+    // Write operations (create client, etc.) are NOT intercepted by the SW —
     // they are queued in IndexedDB by the SyncProvider and replayed on reconnect.
     VitePWA({
       registerType: "autoUpdate",

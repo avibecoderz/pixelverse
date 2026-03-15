@@ -16,13 +16,15 @@ import { putSyncEntry } from "@/lib/offline-db";
 import { useSyncContext } from "@/hooks/use-sync-context";
 import type { AppClient } from "@/hooks/use-data";
 
-// UI → Backend enum conversion (mirrors PHOTO_FORMAT_API in use-data.ts)
+// ── Enum maps ─────────────────────────────────────────────────────────────────
+// UI display value → backend UPPERCASE enum (mirrors PHOTO_FORMAT_API in use-data.ts)
 const PHOTO_FORMAT_API: Record<string, string> = {
   Softcopy: "SOFTCOPY",
   Hardcopy: "HARDCOPY",
   Both:     "BOTH",
 };
 
+// ── Schema ───────────────────────────────────────────────────────────────────
 const clientSchema = z.object({
   clientName:    z.string().min(2, "Name is required"),
   phone:         z.string().min(5, "Phone is required"),
@@ -35,15 +37,62 @@ const clientSchema = z.object({
 
 type ClientFormValues = z.infer<typeof clientSchema>;
 
+// ── Offline save helper ───────────────────────────────────────────────────────
+// Builds an IndexedDB sync entry + a local AppClient snapshot from the form
+// values, persists both, and returns the local client for the success screen.
+// Used by both the explicit-offline path and the network-error fallback path.
+async function saveOffline(values: ClientFormValues): Promise<AppClient> {
+  const localId   = `local_${Date.now()}`;
+  const createdAt = new Date().toISOString();
+
+  const payload = {
+    clientName:  values.clientName,
+    phone:       values.phone,
+    price:       values.price,
+    photoFormat: PHOTO_FORMAT_API[values.photoFormat] ?? "SOFTCOPY",
+    notes:       values.notes || "",
+  };
+
+  const localClient: AppClient = {
+    id:            localId,
+    clientName:    values.clientName,
+    phone:         values.phone,
+    price:         values.price,
+    photoFormat:   values.photoFormat,
+    paymentStatus: values.paymentStatus,
+    orderStatus:   values.orderStatus,
+    notes:         values.notes || "",
+    photos:        [],
+    photoCount:    0,
+    invoiceId:     "",       // assigned by the server after sync
+    galleryLink:   "",       // assigned by the server after sync
+    date:          createdAt,
+    staffId:       "",
+    staffName:     localStorage.getItem("user_name") || "Staff Member",
+  };
+
+  await putSyncEntry({
+    id:        localId,
+    type:      "createClient",
+    payload,
+    localData: localClient as unknown as Record<string, unknown>,
+    status:    "pending",
+    createdAt: Date.now(),
+  });
+
+  return localClient;
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 export default function NewClient() {
   const [, setLocation]      = useLocation();
   const createClient         = useCreateClient();
   const { toast }            = useToast();
   const { isOnline, refreshPendingCount } = useSyncContext();
 
-  const [successData, setSuccessData]   = useState<AppClient | null>(null);
+  const [successData, setSuccessData]     = useState<AppClient | null>(null);
   const [isOfflineSave, setIsOfflineSave] = useState(false);
-  const [copied, setCopied]             = useState(false);
+  const [copied, setCopied]               = useState(false);
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -58,49 +107,13 @@ export default function NewClient() {
     },
   });
 
+  // ── Form submit ──────────────────────────────────────────────────────────
   const onSubmit = async (values: ClientFormValues) => {
-    // ── Offline path ──────────────────────────────────────────────────────────
+
+    // ── Explicit offline path ──────────────────────────────────────────────
+    // navigator.onLine is false — skip the network entirely.
     if (!isOnline) {
-      const localId   = `local_${Date.now()}`;
-      const createdAt = new Date().toISOString();
-
-      // Build the API-ready payload stored in the sync queue
-      const payload = {
-        clientName:  values.clientName,
-        phone:       values.phone,
-        price:       values.price,
-        photoFormat: PHOTO_FORMAT_API[values.photoFormat] ?? "SOFTCOPY",
-        notes:       values.notes || "",
-      };
-
-      // Build the UI AppClient snapshot shown in the success screen
-      const localClient: AppClient = {
-        id:            localId,
-        clientName:    values.clientName,
-        phone:         values.phone,
-        price:         values.price,
-        photoFormat:   values.photoFormat,
-        paymentStatus: values.paymentStatus,
-        orderStatus:   values.orderStatus,
-        notes:         values.notes || "",
-        photos:        [],
-        photoCount:    0,
-        invoiceId:     "",        // unknown until synced
-        galleryLink:   "",        // unknown until synced
-        date:          createdAt,
-        staffId:       "",
-        staffName:     localStorage.getItem("user_name") || "Staff Member",
-      };
-
-      await putSyncEntry({
-        id:        localId,
-        type:      "createClient",
-        payload,
-        localData: localClient as unknown as Record<string, unknown>,
-        status:    "pending",
-        createdAt: Date.now(),
-      });
-
+      const localClient = await saveOffline(values);
       await refreshPendingCount();
       setIsOfflineSave(true);
       setSuccessData(localClient);
@@ -111,7 +124,7 @@ export default function NewClient() {
       return;
     }
 
-    // ── Online path ───────────────────────────────────────────────────────────
+    // ── Online path ────────────────────────────────────────────────────────
     try {
       const result = await createClient.mutateAsync({
         ...values,
@@ -120,54 +133,18 @@ export default function NewClient() {
       setIsOfflineSave(false);
       setSuccessData(result);
       toast({ title: "Client record created!", description: "You can now upload photos for this client." });
+
     } catch (err: unknown) {
-      // If the network is actually unreachable (navigator.onLine can be wrong —
-      // e.g. the device is on Wi-Fi but the internet is down), fall back to the
-      // same offline-save path so the record is never lost.
+      // navigator.onLine can report "online" even when the server is unreachable
+      // (e.g. device on Wi-Fi but no internet).  Detect genuine network failures
+      // and fall back to the offline queue so the record is never lost.
       const isNetworkError =
         !navigator.onLine ||
         (err instanceof TypeError && /fetch|network|failed/i.test(err.message)) ||
-        (err instanceof Error && /network|offline|ECONNREFUSED|ERR_NETWORK/i.test(err.message));
+        (err instanceof Error   && /network|offline|ECONNREFUSED|ERR_NETWORK/i.test(err.message));
 
       if (isNetworkError) {
-        const localId   = `local_${Date.now()}`;
-        const createdAt = new Date().toISOString();
-
-        const payload = {
-          clientName:  values.clientName,
-          phone:       values.phone,
-          price:       values.price,
-          photoFormat: PHOTO_FORMAT_API[values.photoFormat] ?? "SOFTCOPY",
-          notes:       values.notes || "",
-        };
-
-        const localClient: AppClient = {
-          id:            localId,
-          clientName:    values.clientName,
-          phone:         values.phone,
-          price:         values.price,
-          photoFormat:   values.photoFormat,
-          paymentStatus: values.paymentStatus,
-          orderStatus:   values.orderStatus,
-          notes:         values.notes || "",
-          photos:        [],
-          photoCount:    0,
-          invoiceId:     "",
-          galleryLink:   "",
-          date:          createdAt,
-          staffId:       "",
-          staffName:     localStorage.getItem("user_name") || "Staff Member",
-        };
-
-        await putSyncEntry({
-          id:        localId,
-          type:      "createClient",
-          payload,
-          localData: localClient as unknown as Record<string, unknown>,
-          status:    "pending",
-          createdAt: Date.now(),
-        });
-
+        const localClient = await saveOffline(values);
         await refreshPendingCount();
         setIsOfflineSave(true);
         setSuccessData(localClient);
@@ -176,11 +153,16 @@ export default function NewClient() {
           description: "Connection unavailable. Record queued — will sync automatically.",
         });
       } else {
-        toast({ title: "Error", description: "Failed to create client. Please try again.", variant: "destructive" });
+        toast({
+          title:       "Error",
+          description: "Failed to create client. Please try again.",
+          variant:     "destructive",
+        });
       }
     }
   };
 
+  // ── Gallery link copy ────────────────────────────────────────────────────
   const copyLink = (link: string) => {
     navigator.clipboard.writeText(window.location.origin + link);
     setCopied(true);
@@ -188,15 +170,16 @@ export default function NewClient() {
     toast({ title: "Copied!", description: "Gallery link copied to clipboard." });
   };
 
-  // For offline clients, persist the local data so the invoice page can render
-  // it without an API call.  The invoice page detects "local_" IDs and reads
-  // from sessionStorage instead.
+  // ── Offline invoice ──────────────────────────────────────────────────────
+  // Persist the local client snapshot so the invoice page can read it from
+  // sessionStorage without making an API call (local_ IDs don't exist on the
+  // server yet).
   const openOfflineInvoice = (client: AppClient) => {
     sessionStorage.setItem(`offline-invoice-${client.id}`, JSON.stringify(client));
     setLocation(`/staff/clients/${client.id}/invoice`);
   };
 
-  // ── Success screen ──────────────────────────────────────────────────────────
+  // ── Success screen ──────────────────────────────────────────────────────
   if (successData) {
     return (
       <div className="max-w-2xl mx-auto mt-10 animate-in zoom-in-95 duration-500">
@@ -276,7 +259,6 @@ export default function NewClient() {
               View All Clients
             </Button>
             {isOfflineSave ? (
-              // Offline clients: show invoice print button using locally-stored data
               <Button
                 className="flex-1 gap-2 shadow-md bg-amber-600 hover:bg-amber-700"
                 onClick={() => openOfflineInvoice(successData)}
