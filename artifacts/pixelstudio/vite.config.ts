@@ -3,10 +3,9 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { VitePWA } from "vite-plugin-pwa";
 
 // ─── PORT ─────────────────────────────────────────────────────────────────────
-// PORT is only needed for the dev/preview server — it is irrelevant during
-// `vite build` (production builds don't start a server).
 const rawPort = process.env.PORT;
 const isBuild = process.argv.includes("build");
 
@@ -16,15 +15,13 @@ if (!rawPort && !isBuild) {
   );
 }
 
-const port = rawPort ? Number(rawPort) : 3000; // fallback only used during build
+const port = rawPort ? Number(rawPort) : 3000;
 
 if (!isBuild && (Number.isNaN(port) || port <= 0)) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
 // ─── BASE_PATH ────────────────────────────────────────────────────────────────
-// BASE_PATH sets the Vite `base` option (URL prefix for all assets).
-// Defaults to "/" which is correct for production (backend serves at root).
 const basePath = process.env.BASE_PATH ?? "/";
 
 export default defineConfig({
@@ -33,6 +30,90 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+
+    // ── PWA ────────────────────────────────────────────────────────────────────
+    // Service worker is only registered in production builds.
+    // In development the plugin is a no-op so it does not interfere with
+    // the Vite dev server proxy or HMR.
+    VitePWA({
+      registerType: "autoUpdate",
+      // Do not activate the SW in the dev server — avoids cache confusion
+      // during development and proxy issues with /api forwarding.
+      devOptions: { enabled: false },
+
+      includeAssets: ["icons/icon.svg"],
+
+      manifest: {
+        name:             "PixelStudio",
+        short_name:       "PixelStudio",
+        description:      "Photography studio management system",
+        theme_color:      "#7c3aed",
+        background_color: "#ffffff",
+        display:          "standalone",
+        scope:            "/",
+        start_url:        "/",
+        icons: [
+          {
+            src:     "icons/icon.svg",
+            sizes:   "any",
+            type:    "image/svg+xml",
+            purpose: "any maskable",
+          },
+        ],
+      },
+
+      workbox: {
+        // Cache all compiled assets (JS chunks, CSS, fonts, SVG)
+        globPatterns: ["**/*.{js,css,html,svg,woff2,ico,png,webp}"],
+
+        runtimeCaching: [
+          // ── App shell (HTML routes) ────────────────────────────────────────
+          // NetworkFirst: load from network when online; fall back to cache
+          // so all app pages load when offline.
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler:    "NetworkFirst",
+            options: {
+              cacheName:             "pages-cache",
+              networkTimeoutSeconds: 5,
+              expiration:            { maxEntries: 20, maxAgeSeconds: 86400 },
+              cacheableResponse:     { statuses: [0, 200] },
+            },
+          },
+
+          // ── Read-only API GET responses ────────────────────────────────────
+          // StaleWhileRevalidate: serve cached data instantly, then refresh
+          // in background.  Auth-mutating endpoints (POST/PUT/DELETE) are NOT
+          // matched here — they go straight to the network.
+          {
+            urlPattern: ({ url, request }) =>
+              (url.pathname.startsWith("/api/clients") ||
+               url.pathname.startsWith("/api/gallery") ||
+               url.pathname.startsWith("/api/staff")  ||
+               url.pathname.startsWith("/api/payments")) &&
+              request.method === "GET",
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName:         "api-read-cache",
+              expiration:        { maxEntries: 100, maxAgeSeconds: 3600 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+
+          // ── Uploaded photos ────────────────────────────────────────────────
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/uploads/"),
+            handler:    "CacheFirst",
+            options: {
+              cacheName:         "uploads-cache",
+              expiration:        { maxEntries: 300, maxAgeSeconds: 7 * 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+    }),
+
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

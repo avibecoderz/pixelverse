@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import { SyncProvider } from "@/hooks/use-sync-context";
 import { AppLayout } from "@/components/layout";
 import Login from "@/pages/login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -74,12 +75,19 @@ function Router() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      {/*
+       * SyncProvider must be inside QueryClientProvider so the sync engine
+       * can call queryClient.invalidateQueries() after a successful sync.
+       * It must also wrap the router so every page can read the sync context.
+       */}
+      <SyncProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </SyncProvider>
     </QueryClientProvider>
   );
 }

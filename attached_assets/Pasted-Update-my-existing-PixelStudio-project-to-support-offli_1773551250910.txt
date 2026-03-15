@@ -1,0 +1,62 @@
+Update my existing PixelStudio project to support offline use and automatic sync when internet comes back.
+
+Important:
+- This is an existing project
+- Do not rebuild it from scratch
+- Extend the current React + Vite frontend and existing backend integration
+- Keep the current structure as much as possible
+
+Project context:
+- PixelStudio is a photography management system
+- Staff should be able to use the site even without internet
+- Staff should be able to register a new client offline
+- Staff should be able to generate and download an invoice offline
+- When internet comes back, the offline data should sync automatically to the backend
+
+What I want:
+1. Make the frontend work as a PWA
+2. Add offline support so the app can open without internet
+3. Save offline client records locally in the browser
+4. Save offline invoice records locally in the browser
+5. Add a sync queue for offline actions
+6. Automatically sync pending records when internet comes back
+7. Show sync status in the UI
+
+Technical requirements:
+- Frontend: React + Vite
+- Use IndexedDB for offline data storage
+- Add a service worker for caching
+- Keep backend API the same where possible
+- Add sync logic on reconnect
+- Add a manual “Sync Now” button
+- Add UI indicators for:
+  - Offline mode
+  - Pending sync
+  - Synced successfully
+  - Sync failed
+
+Offline features to support now:
+- Create new client offline
+- Generate invoice offline
+- Download/print invoice offline
+
+For photo upload:
+- For now, if offline, do not upload images immediately
+- Instead, mark photo upload as pending and allow upload when internet is back
+- Keep this simple for MVP
+
+Please implement this in steps:
+1. Add PWA support
+2. Add IndexedDB local storage layer
+3. Save new client records locally when offline
+4. Save invoice records locally when offline
+5. Add sync queue
+6. Add automatic sync when the browser comes back online
+7. Add UI status indicators and a Sync Now button
+
+Also explain clearly:
+- which files should be added or updated
+- how the offline storage works
+- how the sync queue works
+- how the frontend knows when it is offline or back online
+- what limitations exist for offline file upload
