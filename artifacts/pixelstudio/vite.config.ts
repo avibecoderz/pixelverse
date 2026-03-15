@@ -31,14 +31,24 @@ export default defineConfig({
     tailwindcss(),
     runtimeErrorOverlay(),
 
-    // ── PWA ────────────────────────────────────────────────────────────────────
-    // Service worker is only registered in production builds.
-    // In development the plugin is a no-op so it does not interfere with
-    // the Vite dev server proxy or HMR.
+    // ── PWA / Service Worker ───────────────────────────────────────────────────
+    // The service worker is enabled in BOTH development and production so that
+    // the offline experience works during development testing.
+    //
+    // What the SW does:
+    //   1. Pre-caches all compiled JS/CSS/HTML on first load (app shell)
+    //   2. Caches API GET responses so existing data appears when offline
+    //   3. Serves cached assets when the network is unavailable
+    //   4. Falls back to index.html for any navigation request that misses
+    //      cache, so React Router still controls SPA routing while offline
+    //
+    // New write operations (create client etc.) are NOT intercepted by the SW —
+    // they are queued in IndexedDB by the SyncProvider and replayed on reconnect.
     VitePWA({
       registerType: "autoUpdate",
-      // Do not activate the SW in the dev server — avoids cache confusion
-      // during development and proxy issues with /api forwarding.
+
+      // Dev-mode SW is handled by /public/sw.js registered in main.tsx.
+      // VitePWA only generates/registers the SW in production builds.
       devOptions: { enabled: false },
 
       includeAssets: ["icons/icon.svg"],
@@ -63,50 +73,47 @@ export default defineConfig({
       },
 
       workbox: {
-        // Cache all compiled assets (JS chunks, CSS, fonts, SVG)
+        // Pre-cache all compiled assets (JS chunks, CSS, fonts, icons)
         globPatterns: ["**/*.{js,css,html,svg,woff2,ico,png,webp}"],
 
-        runtimeCaching: [
-          // ── App shell (HTML routes) ────────────────────────────────────────
-          // NetworkFirst: load from network when online; fall back to cache
-          // so all app pages load when offline.
-          {
-            urlPattern: ({ request }) => request.mode === "navigate",
-            handler:    "NetworkFirst",
-            options: {
-              cacheName:             "pages-cache",
-              networkTimeoutSeconds: 5,
-              expiration:            { maxEntries: 20, maxAgeSeconds: 86400 },
-              cacheableResponse:     { statuses: [0, 200] },
-            },
-          },
+        // SPA offline navigation: any page URL that isn't in the pre-cache
+        // falls back to index.html so React Router handles it client-side.
+        navigateFallback:         "/index.html",
+        navigateFallbackDenylist: [/^\/api\//, /^\/uploads\//],
 
-          // ── Read-only API GET responses ────────────────────────────────────
-          // StaleWhileRevalidate: serve cached data instantly, then refresh
-          // in background.  Auth-mutating endpoints (POST/PUT/DELETE) are NOT
-          // matched here — they go straight to the network.
+        runtimeCaching: [
+          // ── API GET responses ──────────────────────────────────────────────
+          // StaleWhileRevalidate: return cached data IMMEDIATELY (so the UI
+          // appears even when offline), then update the cache in the background
+          // once the network is available again.
+          // Only GET requests are cached — write operations (POST/PATCH/DELETE)
+          // are never intercepted; they either reach the server or get queued
+          // in IndexedDB by the SyncProvider.
           {
             urlPattern: ({ url, request }) =>
-              (url.pathname.startsWith("/api/clients") ||
-               url.pathname.startsWith("/api/gallery") ||
-               url.pathname.startsWith("/api/staff")  ||
-               url.pathname.startsWith("/api/payments")) &&
+              (url.pathname.startsWith("/api/clients")  ||
+               url.pathname.startsWith("/api/gallery")  ||
+               url.pathname.startsWith("/api/staff")    ||
+               url.pathname.startsWith("/api/payments") ||
+               url.pathname.startsWith("/api/dashboard")) &&
               request.method === "GET",
             handler: "StaleWhileRevalidate",
             options: {
               cacheName:         "api-read-cache",
-              expiration:        { maxEntries: 100, maxAgeSeconds: 3600 },
+              expiration:        { maxEntries: 150, maxAgeSeconds: 24 * 3600 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
 
-          // ── Uploaded photos ────────────────────────────────────────────────
+          // ── Uploaded client photos ─────────────────────────────────────────
+          // CacheFirst: photos don't change after upload, so serve from cache
+          // and only hit the network on a cache miss.
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/uploads/"),
             handler:    "CacheFirst",
             options: {
               cacheName:         "uploads-cache",
-              expiration:        { maxEntries: 300, maxAgeSeconds: 7 * 86400 },
+              expiration:        { maxEntries: 500, maxAgeSeconds: 7 * 86400 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
