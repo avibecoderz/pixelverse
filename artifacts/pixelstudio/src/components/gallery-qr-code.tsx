@@ -1,27 +1,48 @@
 import QRCode from "react-qr-code";
 
 interface GalleryQrCodeProps {
-  /** Relative gallery path, e.g. /gallery/abc123 */
+  /**
+   * Either:
+   *  - A relative gallery path, e.g. "/gallery/abc123"  → origin is prepended.
+   *  - An absolute URL,           e.g. "mailto:..."      → used as-is.
+   */
   galleryLink: string;
   /** QR code size in px (default 160) */
   size?: number;
+  /** Override the heading above the code (default: "Scan to View Your Photos") */
+  label?: string;
+  /** Override the caption below the code */
+  description?: string;
 }
 
 /**
- * Renders a QR code that points to the client's photo gallery.
- * Constructs the full URL from window.location.origin + galleryLink so it
- * always reflects the current domain (dev, staging, or production).
+ * Renders a QR code that points to a given URL.
  *
- * Place this wherever the invoice is rendered — it is print-safe and
- * renders as an SVG so it stays crisp at any DPI.
+ * For gallery links (relative paths) the full URL is built from
+ * window.location.origin so it always reflects the correct domain.
+ * For absolute URLs (mailto:, https://, etc.) the value is used as-is.
+ *
+ * Accepts optional `label` and `description` overrides so the same
+ * component can serve both confirmed gallery QR codes and draft
+ * contact-info QR codes on offline invoices.
+ *
+ * Print-safe: renders as SVG and stays crisp at any DPI.
  */
-export function GalleryQrCode({ galleryLink, size = 160 }: GalleryQrCodeProps) {
-  const fullUrl = `${window.location.origin}${galleryLink}`;
+export function GalleryQrCode({
+  galleryLink,
+  size = 160,
+  label       = "Scan to View Your Photos",
+  description = "Scan this QR code to access and download your photos.",
+}: GalleryQrCodeProps) {
+  // Use the value as-is when it is already an absolute URL (has a protocol),
+  // otherwise prefix with the current origin so relative paths resolve correctly.
+  const isAbsolute = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(galleryLink);
+  const fullUrl = isAbsolute ? galleryLink : `${window.location.origin}${galleryLink}`;
 
   return (
     <div className="flex flex-col items-center gap-3">
       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-        Scan to View Your Photos
+        {label}
       </p>
 
       {/* White padding around the QR code is required for scanners */}
@@ -35,7 +56,7 @@ export function GalleryQrCode({ galleryLink, size = 160 }: GalleryQrCodeProps) {
       </div>
 
       <p className="text-xs text-slate-500 text-center max-w-[200px] leading-relaxed">
-        Scan this QR code to access and download your photos.
+        {description}
       </p>
     </div>
   );

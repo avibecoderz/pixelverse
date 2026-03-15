@@ -224,9 +224,16 @@ export default function InvoicePreview() {
 
             {/* ── Totals + QR Code ─────────────────────────────────────── */}
             <div className="flex flex-col sm:flex-row justify-between items-start gap-10">
-              {client.galleryLink && (
+              {isLocalClient ? (
+                <GalleryQrCode
+                  galleryLink="mailto:hello@pixelstudio.ng"
+                  size={160}
+                  label="Contact PixelStudio"
+                  description="Gallery link will be sent once your record syncs to our server."
+                />
+              ) : client.galleryLink ? (
                 <GalleryQrCode galleryLink={client.galleryLink} size={160} />
-              )}
+              ) : null}
               <div className="w-full sm:w-72 space-y-3.5 bg-slate-50 p-6 rounded-xl border border-slate-100 ml-auto">
                 <div className="flex justify-between text-sm text-slate-500">
                   <span>Subtotal</span>
