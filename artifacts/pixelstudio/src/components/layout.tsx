@@ -55,8 +55,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const staffNav = [
     { title: "Dashboard", url: "/staff", icon: LayoutDashboard },
-    { title: "New Client", url: "/staff/clients/new", icon: UserPlus },
-    { title: "Client Records", url: "/staff/clients", icon: ImageIcon },
+    { title: "New Customer", url: "/staff/clients/new", icon: UserPlus },
+    { title: "Customer Records", url: "/staff/clients", icon: ImageIcon },
   ];
 
   const navItems = role === "admin" ? adminNav : staffNav;
