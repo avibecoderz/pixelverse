@@ -215,10 +215,10 @@ export default function Login() {
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${activeTab === "admin" ? "bg-indigo-100 text-indigo-600" : "bg-violet-100 text-violet-600"}`}>
                   {activeTab === "admin" ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
                 </div>
-                <div className="flex-1">
+                {/* <div className="flex-1">
                   <p className={`text-sm font-bold ${activeTab === "admin" ? "text-indigo-800" : "text-violet-800"}`}>{activeTab === "admin" ? "Studio Admin" : "Staff / Photographer"}</p>
                   <p className={`text-xs mt-0.5 ${activeTab === "admin" ? "text-indigo-600" : "text-violet-600"}`}>{activeTab === "admin" ? "Full access — manage staff, payments & settings" : "Upload photos & manage your clients"}</p>
-                </div>
+                </div> */}
                 {/* <button type="button" onClick={fillDemo} className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}>
                   Fill Demo
                 </button> */}
