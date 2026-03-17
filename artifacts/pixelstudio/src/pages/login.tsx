@@ -170,7 +170,7 @@ export default function Login() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/30 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700" />
             <div className="flex items-center gap-6 relative z-10">
               <div>
-                <div className="text-4xl font-display font-bold text-white mb-1">1,248</div>
+                <div className="text-4xl font-display font-bold text-white mb-1">1248</div>
                 <div className="text-sm font-medium text-slate-400 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Galleries Delivered</div>
               </div>
               <div className="w-px h-12 bg-white/20" />
