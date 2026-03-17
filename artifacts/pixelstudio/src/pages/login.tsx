@@ -83,18 +83,18 @@ export default function Login() {
   };
 
   // Fill demo credentials from the seed data
-  const fillDemo = () => {
-    if (activeTab === "admin") {
-      setEmail("admin@pixelstudio.com");
-      setPassword("admin123");
-    } else {
-      // Use the first staff member created by the seed script, if any.
-      // Staff accounts are created via the Admin → Manage Staff page.
-      setEmail("staff@pixelstudio.com");
-      setPassword("staff123");
-    }
-    setLoginError("");
-  };
+  // const fillDemo = () => {
+  //   if (activeTab === "admin") {
+  //     setEmail("admin@pixelstudio.com");
+  //     setPassword("admin123");
+  //   } else {
+  //     // Use the first staff member created by the seed script, if any.
+  //     // Staff accounts are created via the Admin → Manage Staff page.
+  //     setEmail("staff@pixelstudio.com");
+  //     setPassword("staff123");
+  //   }
+  //   setLoginError("");
+  // };
 
   // ─── Forgot-password steps (UI demo — no real email service) ─────────────
   const handleEmailSubmit = async (e: React.FormEvent) => {
