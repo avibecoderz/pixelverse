@@ -37,7 +37,7 @@ export default function StaffDashboard() {
               <Link href="/staff/clients">View Records</Link>
             </Button>
             <Button asChild className="bg-white text-indigo-700 hover:bg-slate-50 shadow-md font-bold gap-2">
-              <Link href="/staff/clients/new"><UserPlus className="w-4 h-4" /> New Client</Link>
+              <Link href="/staff/clients/new"><UserPlus className="w-4 h-4" /> New Customer</Link>
             </Button>
           </div>
         </div>
@@ -57,10 +57,10 @@ export default function StaffDashboard() {
         {/* Recent Clients Table */}
         <Card className="col-span-2 shadow-sm border-border/40 overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-slate-50/50 border-b border-border/40">
-            <CardTitle className="text-xl font-display font-bold">Recent Clients</CardTitle>
+            <CardTitle className="text-xl font-display font-bold">Recent Customer</CardTitle>
             <Button variant="ghost" size="sm" asChild className="hover:bg-white hover:shadow-sm">
               <Link href="/staff/clients" className="text-primary font-semibold gap-1 flex items-center">
-                All Clients <ArrowRight className="w-4 h-4" />
+                All Customer <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
           </CardHeader>
