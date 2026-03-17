@@ -35,6 +35,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,          // production origin (may be undefined in dev)
   "http://localhost:5173",           // default Vite dev port
+  "http://localhost:5174",           // alternative Vite dev port
   "http://localhost:4173",           // Vite preview
   "http://localhost:3000",           // fallback
 ].filter(Boolean); // remove undefined/null entries
