@@ -219,9 +219,9 @@ export default function Login() {
                   <p className={`text-sm font-bold ${activeTab === "admin" ? "text-indigo-800" : "text-violet-800"}`}>{activeTab === "admin" ? "Studio Admin" : "Staff / Photographer"}</p>
                   <p className={`text-xs mt-0.5 ${activeTab === "admin" ? "text-indigo-600" : "text-violet-600"}`}>{activeTab === "admin" ? "Full access — manage staff, payments & settings" : "Upload photos & manage your clients"}</p>
                 </div>
-                <button type="button" onClick={fillDemo} className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}>
+                {/* <button type="button" onClick={fillDemo} className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}>
                   Fill Demo
-                </button>
+                </button> */}
               </div>
 
               {/* Login form */}
@@ -266,9 +266,9 @@ export default function Login() {
                 <Button type="submit" size="lg" disabled={loading} className="w-full h-12 text-base font-bold shadow-md">
                   {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Signing in...</span> : "Sign In"}
                 </Button>
-                <p className="text-center text-xs text-slate-400">
+                {/* <p className="text-center text-xs text-slate-400">
                   Demo — {activeTab === "admin" ? "admin@pixelstudio.com / admin123" : "Create a staff account first via Admin → Manage Staff"}
-                </p>
+                </p> */}
               </form>
             </>
           ) : (
