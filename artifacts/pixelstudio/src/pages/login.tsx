@@ -83,18 +83,18 @@ export default function Login() {
   };
 
   // Fill demo credentials from the seed data
-  // const fillDemo = () => {
-  //   if (activeTab === "admin") {
-  //     setEmail("admin@pixelstudio.com");
-  //     setPassword("admin123");
-  //   } else {
-  //     // Use the first staff member created by the seed script, if any.
-  //     // Staff accounts are created via the Admin → Manage Staff page.
-  //     setEmail("staff@pixelstudio.com");
-  //     setPassword("staff123");
-  //   }
-  //   setLoginError("");
-  // };
+  const fillDemo = () => {
+    if (activeTab === "admin") {
+      setEmail("admin@pixelstudio.com");
+      setPassword("admin123");
+    } else {
+      // Use the first staff member created by the seed script, if any.
+      // Staff accounts are created via the Admin → Manage Staff page.
+      setEmail("staff@pixelstudio.com");
+      setPassword("staff123");
+    }
+    setLoginError("");
+  };
 
   // ─── Forgot-password steps (UI demo — no real email service) ─────────────
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -156,7 +156,7 @@ export default function Login() {
             <div className="bg-primary/20 p-3 rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-primary/30 backdrop-blur-sm">
               <Camera className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h3 className="text-4xl font-display font-bold tracking-tight">GBSM Photography Studio</h3>
+            <h4 className="text-4xl font-display font-bold tracking-tight">GBSM Photography Studio</h4>
           </div>
           <h2 className="text-5xl font-display font-bold leading-tight mb-8">Elevate your studio management.</h2>
           <div className="space-y-5 mb-12">
@@ -170,12 +170,12 @@ export default function Login() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/30 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700" />
             <div className="flex items-center gap-6 relative z-10">
               <div>
-                <div className="text-4xl font-display font-bold text-white mb-1">1248</div>
+                <div className="text-4xl font-display font-bold text-white mb-1">1,248</div>
                 <div className="text-sm font-medium text-slate-400 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Galleries Delivered</div>
               </div>
               <div className="w-px h-12 bg-white/20" />
               <div>
-                <div className="text-4xl font-display font-bold text-white mb-1">2019</div>
+                <div className="text-4xl font-display font-bold text-white mb-1">2018</div>
                 <div className="text-sm font-medium text-slate-400 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Years of Experience</div>
               </div>
             </div>
@@ -195,10 +195,10 @@ export default function Login() {
 
           {!forgotMode ? (
             <>
-              <div>
-                <h2 className="text-4xl font-bold font-display tracking-tight text-slate-900">Sign in</h2>
+              {/* <div>
+                <h2 className="text-4xl font-bold font-display tracking-tight text-slate-900">Sign in here</h2>
                 <p className="text-slate-500 mt-2">Access your studio dashboard</p>
-              </div>
+              </div> */}
 
               {/* Tabs */}
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl">
@@ -211,18 +211,19 @@ export default function Login() {
               </div>
 
               {/* Role badge */}
-              <div className={`flex items-center gap-3 p-4 rounded-xl border ${activeTab === "admin" ? "bg-indigo-50 border-indigo-100" : "bg-violet-50 border-violet-100"}`}>
+
+              {/* <div className={`flex items-center gap-3 p-4 rounded-xl border ${activeTab === "admin" ? "bg-indigo-50 border-indigo-100" : "bg-violet-50 border-violet-100"}`}>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${activeTab === "admin" ? "bg-indigo-100 text-indigo-600" : "bg-violet-100 text-violet-600"}`}>
                   {activeTab === "admin" ? <ShieldCheck className="w-5 h-5" /> : <UserCircle className="w-5 h-5" />}
                 </div>
-                {/* <div className="flex-1">
+                <div className="flex-1">
                   <p className={`text-sm font-bold ${activeTab === "admin" ? "text-indigo-800" : "text-violet-800"}`}>{activeTab === "admin" ? "Studio Admin" : "Staff / Photographer"}</p>
                   <p className={`text-xs mt-0.5 ${activeTab === "admin" ? "text-indigo-600" : "text-violet-600"}`}>{activeTab === "admin" ? "Full access — manage staff, payments & settings" : "Upload photos & manage your clients"}</p>
-                </div> */}
-                {/* <button type="button" onClick={fillDemo} className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}>
+                </div>
+                <button type="button" onClick={fillDemo} className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${activeTab === "admin" ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "bg-violet-100 text-violet-700 hover:bg-violet-200"}`}>
                   Fill Demo
-                </button> */}
-              </div>
+                </button>
+              </div> */}
 
               {/* Login form */}
               <form onSubmit={handleLogin} className="space-y-5">
@@ -266,9 +267,11 @@ export default function Login() {
                 <Button type="submit" size="lg" disabled={loading} className="w-full h-12 text-base font-bold shadow-md">
                   {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Signing in...</span> : "Sign In"}
                 </Button>
+
                 {/* <p className="text-center text-xs text-slate-400">
                   Demo — {activeTab === "admin" ? "admin@pixelstudio.com / admin123" : "Create a staff account first via Admin → Manage Staff"}
                 </p> */}
+
               </form>
             </>
           ) : (
