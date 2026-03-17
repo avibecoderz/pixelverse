@@ -1,14 +1,11 @@
 {
   "builds": [
     {
-      "src": "artifacts/api-server/dist/index.cjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/api-server/dist/index.cjs"
+      "src": "artifacts/pixelstudio/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/public"
+      }
     }
   ]
 }
