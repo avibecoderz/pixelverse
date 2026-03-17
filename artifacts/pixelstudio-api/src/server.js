@@ -12,7 +12,7 @@ require("dotenv").config();
 const app = require("./app");
 
 // Read port from .env — Replit Cloud Run expects 3000 in production
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 // Start listening on all network interfaces (0.0.0.0) so the deployment
 // proxy can reach the server. Binding to 127.0.0.1 (the default) only

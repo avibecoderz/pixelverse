@@ -83,18 +83,18 @@ export default function Login() {
   };
 
   // Fill demo credentials from the seed data
-  const fillDemo = () => {
-    if (activeTab === "admin") {
-      setEmail("admin@pixelstudio.com");
-      setPassword("admin123");
-    } else {
-      // Use the first staff member created by the seed script, if any.
-      // Staff accounts are created via the Admin → Manage Staff page.
-      setEmail("staff@pixelstudio.com");
-      setPassword("staff123");
-    }
-    setLoginError("");
-  };
+  // const fillDemo = () => {
+  //   if (activeTab === "admin") {
+  //     setEmail("admin@pixelstudio.com");
+  //     setPassword("admin123");
+  //   } else {
+  //     // Use the first staff member created by the seed script, if any.
+  //     // Staff accounts are created via the Admin → Manage Staff page.
+  //     setEmail("staff@pixelstudio.com");
+  //     setPassword("staff123");
+  //   }
+  //   setLoginError("");
+  // };
 
   // ─── Forgot-password steps (UI demo — no real email service) ─────────────
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -175,8 +175,8 @@ export default function Login() {
               </div>
               <div className="w-px h-12 bg-white/20" />
               <div>
-                <div className="text-4xl font-display font-bold text-white mb-1">₦42M</div>
-                <div className="text-sm font-medium text-slate-400 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Monthly Revenue</div>
+                <div className="text-4xl font-display font-bold text-white mb-1">2019</div>
+                <div className="text-sm font-medium text-slate-400 flex items-center gap-2"><CreditCard className="w-4 h-4" /> Years of Experience</div>
               </div>
             </div>
           </div>
@@ -390,7 +390,12 @@ export default function Login() {
             </div>
           )}
 
-          <p className="text-center text-sm text-slate-400">© {new Date().getFullYear()} GBSM Photography Studio . by <a href="#">oralbits Technologies ltd.</a></p>
+              <p className="text-center text-sm text-slate-400">
+              © {new Date().getFullYear()} GBSM Photography Studio . by{" "}
+              <a href="https://www.oralbits.com.ng" className="text-blue-500 hover:text-blue-700">
+                Oralbits Technologies ltd.
+              </a>
+            </p>
         </div>
       </div>
     </div>
