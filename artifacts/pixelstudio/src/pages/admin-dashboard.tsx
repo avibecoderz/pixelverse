@@ -71,7 +71,7 @@ export default function AdminDashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-slate-50/50 border-b border-border/40">
             <div>
               <CardTitle className="text-xl font-display">Recent Payments</CardTitle>
-              <p className="text-sm text-muted-foreground mt-0.5">Latest client transactions.</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Latest Customer transactions.</p>
             </div>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/admin/payments" className="text-primary font-semibold gap-1 flex items-center">
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border/40 text-muted-foreground bg-slate-50/30">
-                    <th className="font-semibold text-left py-3 pl-6">Client</th>
+                    <th className="font-semibold text-left py-3 pl-6">Customer</th>
                     <th className="font-semibold text-left py-3">Staff</th>
                     <th className="font-semibold text-left py-3">Amount</th>
                     <th className="font-semibold text-left py-3">Status</th>
@@ -151,8 +151,8 @@ export default function AdminDashboard() {
       <Card className="shadow-sm border-border/40">
         <CardHeader className="pb-4 bg-slate-50/50 border-b border-border/40 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-display">Recent Client Activity</CardTitle>
-            <p className="text-sm text-muted-foreground mt-0.5">Latest client records and order statuses.</p>
+            <CardTitle className="text-xl font-display">Recent Customer Activity</CardTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">Latest Customer records and order statuses.</p>
           </div>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/staff/clients" className="text-primary font-semibold gap-1 flex items-center">
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/40 text-muted-foreground bg-slate-50/30">
-                  <th className="font-semibold text-left py-3 pl-6">Client</th>
+                  <th className="font-semibold text-left py-3 pl-6">Customer</th>
                   <th className="font-semibold text-left py-3">Staff</th>
                   <th className="font-semibold text-left py-3">Format</th>
                   <th className="font-semibold text-left py-3">Order</th>

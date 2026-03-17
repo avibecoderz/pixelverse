@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
-import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, DollarSign, ImageIcon } from "lucide-react";
+import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, DollarSign, ImageIcon, Clock } from "lucide-react";
 import { useClients } from "@/hooks/use-data";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export default function StaffDashboard() {
   const clients_ = clients ?? [];
 
   const totalRevenue = clients_.filter(c => c.paymentStatus === 'Paid').reduce((s, c) => s + c.price, 0);
+  const pendingPayments = clients_.filter(c => c.paymentStatus === 'Pending').length;
   const pendingEditing = clients_.filter(c => c.orderStatus === 'Editing').length;
   // Use photoCount (accurate from _count.photos on list view) instead of photos.length.
   const readyToUpload = clients_.filter(c => c.orderStatus === 'Ready' && c.photoCount === 0).length;
@@ -43,12 +44,13 @@ export default function StaffDashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
         <StatCard title="Total Clients" value={isLoading ? "…" : clients_.length} icon={Users} colorScheme="violet" />
         <StatCard title="Pending Editing" value={isLoading ? "…" : pendingEditing} icon={Camera} colorScheme="amber"
           trend={pendingEditing > 0 ? { value: pendingEditing, label: "need attention" } : undefined} />
         <StatCard title="Uploaded Galleries" value={isLoading ? "…" : uploadedGalleries} icon={ImageIcon} colorScheme="emerald" />
         <StatCard title="Total Revenue" value={isLoading ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="blue" />
+        <StatCard title="Pending Payments" value={isLoading ? "…" : pendingPayments} icon={Clock} colorScheme="amber" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -89,6 +91,7 @@ export default function StaffDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={client.orderStatus} />
+                      <StatusBadge status={client.paymentStatus} />
                       <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg"
                         onClick={e => { e.stopPropagation(); setLocation(`/staff/clients/${client.id}/invoice`); }}>
                         <span><FileText className="w-4 h-4" /></span>
