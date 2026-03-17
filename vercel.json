@@ -1,14 +1,12 @@
+
 {
-  "builds": [
+  "framework": "vite",
+  "buildCommand": "pnpm --filter @workspace/pixelstudio run build",
+  "outputDirectory": "artifacts/pixelstudio/dist/public",
+  "rewrites": [
     {
-      "src": "artifacts/api-server/dist/index.cjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/api-server/dist/index.cjs"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
