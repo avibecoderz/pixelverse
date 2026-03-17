@@ -83,18 +83,18 @@ export default function Login() {
   };
 
   // Fill demo credentials from the seed data
-  // const fillDemo = () => {
-  //   if (activeTab === "admin") {
-  //     setEmail("admin@pixelstudio.com");
-  //     setPassword("admin123");
-  //   } else {
-  //     // Use the first staff member created by the seed script, if any.
-  //     // Staff accounts are created via the Admin → Manage Staff page.
-  //     setEmail("staff@pixelstudio.com");
-  //     setPassword("staff123");
-  //   }
-  //   setLoginError("");
-  // };
+  const fillDemo = () => {
+    if (activeTab === "admin") {
+      setEmail("admin@pixelstudio.com");
+      setPassword("admin123");
+    } else {
+      // Use the first staff member created by the seed script, if any.
+      // Staff accounts are created via the Admin → Manage Staff page.
+      setEmail("staff@pixelstudio.com");
+      setPassword("staff123");
+    }
+    setLoginError("");
+  };
 
   // ─── Forgot-password steps (UI demo — no real email service) ─────────────
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -195,10 +195,10 @@ export default function Login() {
 
           {!forgotMode ? (
             <>
-              <div>
+              {/* <div>
                 <h2 className="text-4xl font-bold font-display tracking-tight text-slate-900">Sign in</h2>
                 <p className="text-slate-500 mt-2">Access your studio dashboard</p>
-              </div>
+              </div> */}
 
               {/* Tabs */}
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl">
@@ -266,9 +266,9 @@ export default function Login() {
                 <Button type="submit" size="lg" disabled={loading} className="w-full h-12 text-base font-bold shadow-md">
                   {loading ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Signing in...</span> : "Sign In"}
                 </Button>
-                <p className="text-center text-xs text-slate-400">
+                {/* <p className="text-center text-xs text-slate-400">
                   Demo — {activeTab === "admin" ? "admin@pixelstudio.com / admin123" : "Create a staff account first via Admin → Manage Staff"}
-                </p>
+                </p> */}
               </form>
             </>
           ) : (
