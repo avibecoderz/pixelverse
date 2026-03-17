@@ -1,11 +1,11 @@
 {
-  "builds": [
+  "framework": "vite",
+  "buildCommand": "pnpm --filter @workspace/pixelstudio run build",
+  "outputDirectory": "artifacts/pixelstudio/dist/public",
+  "rewrites": [
     {
-      "src": "artifacts/pixelstudio/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/public"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
