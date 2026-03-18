@@ -195,10 +195,10 @@ export default function Login() {
 
           {!forgotMode ? (
             <>
-              {/* <div>
+              <div>
                 <h2 className="text-4xl font-bold font-display tracking-tight text-slate-900">Sign in here</h2>
                 <p className="text-slate-500 mt-2">Access your studio dashboard</p>
-              </div> */}
+              </div>
 
               {/* Tabs */}
               <div className="flex gap-2 p-1.5 bg-slate-100 rounded-xl">
