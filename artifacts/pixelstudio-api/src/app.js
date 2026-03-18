@@ -34,7 +34,8 @@ const app = express();
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,                     // from Render env
-  "https://pixelverse-ten.vercel.app",          // your Vercel frontend
+  "https://pixelverse-ten.vercel.app",
+  "https://pixelverse-knjs.onrender.com",         // your Vercel frontend
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:4173",
