@@ -271,7 +271,7 @@ export default function Login() {
                   </div>
                   {activeTab === "admin" && (
                     <div className="flex justify-end">
-                      <button type="button" onClick={() => { setForgotMode(true); resetForgot(); }} className="text-xs font-semibold text-primary hover:underline mt-1">
+                      <button type="button" onClick={() => setLocation("/forgot-password")} className="text-xs font-semibold text-primary hover:underline mt-1">
                         Forgot password?
                       </button>
                     </div>
