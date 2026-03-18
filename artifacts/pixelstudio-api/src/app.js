@@ -32,15 +32,27 @@ const app = express();
 // In production:   Set FRONTEND_URL in your .env to restrict CORS to your real
 //                  domain, e.g. FRONTEND_URL=https://pixelstudio.ng
 
+const normalizeOrigin = (value) => {
+  if (!value) return null;
+
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return value.trim().replace(/\/+$/, "");
+  }
+};
+
 const allowedOrigins = [
-  process.env.FRONTEND_URL,                     // from Render env
+  process.env.FRONTEND_URL, // from Render env
   "https://pixelverse-ten.vercel.app",
-  "https://pixelverse-knjs.onrender.com",         // your Vercel frontend
+  "https://pixelverse-knjs.onrender.com",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:4173",
   "http://localhost:3000",
-].filter(Boolean);
+]
+  .map(normalizeOrigin)
+  .filter(Boolean);
 
 const isPrivateDevOrigin = (origin) => {
   try {
@@ -65,12 +77,17 @@ app.use(
       // allow Postman / server requests
       if (!origin) return callback(null, true);
 
+      const normalizedOrigin = normalizeOrigin(origin);
+
       // allow listed origins
-      if (allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.includes(normalizedOrigin) ||
+        isPrivateDevOrigin(normalizedOrigin)
+      ) {
         return callback(null, true);
       }
 
-      console.log("Blocked by CORS:", origin); // debug log
+      console.log("Blocked by CORS:", normalizedOrigin, "Allowed:", allowedOrigins);
       callback(new Error(`CORS: origin '${origin}' is not allowed`));
     },
     credentials: true,
