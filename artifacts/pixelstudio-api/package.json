@@ -5,9 +5,10 @@
   "main": "src/server.js",
   "scripts": {
     "start": "NODE_ENV=production node src/server.js",
-    "build": "prisma generate",
+    "build": "prisma generate && prisma db push",
     "dev": "nodemon src/server.js",
     "db:generate": "prisma generate",
+    "db:deploy": "prisma generate && prisma db push",
     "db:migrate": "prisma migrate dev --name init",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
