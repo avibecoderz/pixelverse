@@ -33,12 +33,13 @@ const app = express();
 //                  domain, e.g. FRONTEND_URL=https://pixelstudio.ng
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL,          // production origin (may be undefined in dev)
-  "http://localhost:5173",           // default Vite dev port
-  "http://localhost:5174",           // alternative Vite dev port
-  "http://localhost:4173",           // Vite preview
-  "http://localhost:3000",           // fallback
-].filter(Boolean); // remove undefined/null entries
+  process.env.FRONTEND_URL,                     // from Render env
+  "https://pixelverse-ten.vercel.app",          // your Vercel frontend
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:4173",
+  "http://localhost:3000",
+].filter(Boolean);
 
 const isPrivateDevOrigin = (origin) => {
   try {
@@ -60,29 +61,18 @@ const isPrivateDevOrigin = (origin) => {
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no Origin header (Postman, curl, server-to-server)
+      // allow Postman / server requests
       if (!origin) return callback(null, true);
 
-      // Allow localhost and private-network dev hosts in all environments.
-      // This covers normal local Vite usage plus LAN access from another device.
-      if (isPrivateDevOrigin(origin)) {
-        return callback(null, true);
-      }
-
-      // Allow Replit dev and preview domains (*.replit.dev, *.replit.app)
-      // These are used by the Replit workspace preview iframe and the api-server proxy.
-      if (origin.endsWith(".replit.dev") || origin.endsWith(".replit.app")) {
-        return callback(null, true);
-      }
-
-      // Allow any explicit origin in the allow-list (production FRONTEND_URL)
+      // allow listed origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
+      console.log("Blocked by CORS:", origin); // debug log
       callback(new Error(`CORS: origin '${origin}' is not allowed`));
     },
-    credentials: true, // allow cookies and Authorization headers
+    credentials: true,
   })
 );
 
