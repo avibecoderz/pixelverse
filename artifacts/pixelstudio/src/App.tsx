@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SyncProvider } from "@/hooks/use-sync-context";
 import { AppLayout } from "@/components/layout";
 import Login from "@/pages/login";
+import ForgotPassword from "@/pages/forgot-password";
 import AdminDashboard from "@/pages/admin-dashboard";
 import ManageStaff from "@/pages/manage-staff";
 import AllPayments from "@/pages/all-payments";
@@ -27,6 +28,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/gallery/:id" component={ClientGallery} />
 
       <Route path="/">
