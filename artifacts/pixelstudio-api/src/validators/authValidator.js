@@ -53,8 +53,32 @@ const changePasswordRules = validate([
   },
 ]);
 
+const requestPasswordResetRules = validate([
+  {
+    field:    "email",
+    required: true,
+    type:     "email",
+    message:  "A valid email address is required",
+  },
+]);
+
+const verifyPasswordResetOtpRules = validate([
+  {
+    field:    "email",
+    required: true,
+    type:     "email",
+    message:  "A valid email address is required",
+  },
+  {
+    field:     "otp",
+    required:  true,
+    minLength: 6,
+    message:   "otp must be 6 characters",
+  },
+]);
+
 // ─── POST /api/auth/reset-password ───────────────────────────────────────────
-// Public endpoint — no current-password required (OTP was verified on the client).
+// Public endpoint — requires a verified password reset session token.
 // email must be a valid email address.
 // newPassword must be at least 6 characters.
 const resetPasswordRules = validate([
@@ -70,6 +94,17 @@ const resetPasswordRules = validate([
     minLength: 6,
     message:   "newPassword must be at least 6 characters",
   },
+  {
+    field:    "resetToken",
+    required: true,
+    message:  "resetToken is required",
+  },
 ]);
 
-module.exports = { loginRules, changePasswordRules, resetPasswordRules };
+module.exports = {
+  loginRules,
+  changePasswordRules,
+  requestPasswordResetRules,
+  verifyPasswordResetOtpRules,
+  resetPasswordRules,
+};
