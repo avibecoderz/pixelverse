@@ -85,8 +85,28 @@ model User {
   galleriesUploaded Gallery[] @relation("GalleryUploadedBy")
   invoicesCreated   Invoice[] @relation("InvoiceCreatedBy")
   paymentsReceived  Payment[] @relation("PaymentReceivedBy")
+  passwordReset     PasswordResetSession?
 
   @@map("users")
+}
+
+model PasswordResetSession {
+  id                 String    @id @default(uuid())
+  otpHash            String
+  otpExpiresAt       DateTime
+  attemptCount       Int       @default(0)
+  lastSentAt         DateTime  @default(now())
+  verifiedAt         DateTime?
+  resetTokenHash     String?
+  resetTokenExpiresAt DateTime?
+  consumedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_sessions")
 }
 
 // =============================================================================

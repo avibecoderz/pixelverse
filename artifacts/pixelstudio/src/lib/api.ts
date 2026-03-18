@@ -361,11 +361,33 @@ export async function changePassword(
  */
 export async function resetPassword(
   email:       string,
+  resetToken:  string,
   newPassword: string,
 ): Promise<void> {
   await apiFetch("/api/auth/reset-password", {
     method: "POST",
-    body:   JSON.stringify({ email, newPassword }),
+    body:   JSON.stringify({ email, resetToken, newPassword }),
+  });
+}
+
+export async function requestPasswordReset(email: string): Promise<{
+  delivery?: "email" | "log";
+  expiresInMinutes?: number;
+  previewCode?: string;
+}> {
+  return apiFetch("/api/auth/request-password-reset", {
+    method: "POST",
+    body:   JSON.stringify({ email }),
+  });
+}
+
+export async function verifyPasswordResetOtp(
+  email: string,
+  otp: string,
+): Promise<{ resetToken: string; expiresInMinutes?: number }> {
+  return apiFetch("/api/auth/verify-reset-otp", {
+    method: "POST",
+    body:   JSON.stringify({ email, otp }),
   });
 }
 

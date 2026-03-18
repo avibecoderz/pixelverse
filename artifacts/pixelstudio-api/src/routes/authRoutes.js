@@ -19,7 +19,13 @@ const express        = require("express");
 const router         = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
-const { loginRules, changePasswordRules, resetPasswordRules } = require("../validators/authValidator");
+const {
+  loginRules,
+  changePasswordRules,
+  requestPasswordResetRules,
+  verifyPasswordResetOtpRules,
+  resetPasswordRules,
+} = require("../validators/authValidator");
 
 // ─── Public routes (no token needed) ─────────────────────────────────────────
 
@@ -50,6 +56,18 @@ const { loginRules, changePasswordRules, resetPasswordRules } = require("../vali
  *   401 — wrong email or password
  */
 router.post("/login", loginRules, authController.login);
+
+router.post(
+  "/request-password-reset",
+  requestPasswordResetRules,
+  authController.requestPasswordReset
+);
+
+router.post(
+  "/verify-reset-otp",
+  verifyPasswordResetOtpRules,
+  authController.verifyPasswordResetOtp
+);
 
 // ─── Protected routes (Bearer token required) ─────────────────────────────────
 
@@ -102,16 +120,13 @@ router.post("/change-password", authMiddleware, changePasswordRules, authControl
 /**
  * POST /api/auth/reset-password
  *
- * Resets a user's password without requiring the old password.
- * This is the final step of the forgot-password / OTP flow.
- *
- * The OTP is verified client-side (simulation).  The frontend only reaches
- * this endpoint after the user has successfully entered the correct OTP code.
+ * Resets a user's password after the OTP has been verified server-side.
  *
  * Request body:
  *   {
  *     "email":       "admin@pixelstudio.com",
- *     "newPassword": "mynewpassword"
+ *     "newPassword": "mynewpassword",
+ *     "resetToken":  "<returned by verify-reset-otp>"
  *   }
  *
  * Success response (200):
