@@ -1,16 +1,3 @@
-// =============================================================================
-// schema.prisma — PixelStudio MVP Database Design
-//
-// Provider : PostgreSQL (Replit built-in database)
-// ORM      : Prisma
-//
-// Tables   : users · clients · galleries · photos · invoices · payments
-//
-// Run after schema changes:
-//   pnpm --filter pixelstudio-api run db:generate  ← regenerates Prisma Client
-//   pnpm --filter pixelstudio-api run db:push      ← applies schema to DB
-// =============================================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,113 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =============================================================================
-// ENUMS
-// Enums are defined at the top so all models below can reference them.
-// =============================================================================
-
-// Role — determines what a user can do inside the system
-enum Role {
-  ADMIN   // full access: manage staff, view all records, system settings
-  STAFF   // limited access: manage own clients, upload photos, create invoices
-}
-
-// PhotoFormat — how the client wants to receive their finished photos
-enum PhotoFormat {
-  SOFTCOPY   // digital files only (download link / USB)
-  HARDCOPY   // printed copies only
-  BOTH       // digital files AND printed copies
-}
-
-// PaymentStatus — tracks whether a payment or invoice has been settled
-enum PaymentStatus {
-  PENDING   // not yet paid
-  PAID      // payment confirmed
-}
-
-// OrderStatus — tracks where the client's session/photos are in the workflow
-enum OrderStatus {
-  PENDING    // just booked, nothing started
-  EDITING    // photos are being edited by staff
-  READY      // editing complete, photos ready for delivery
-  DELIVERED  // photos delivered to the client
-}
-
-// =============================================================================
-// MODEL: users
-//
-// Stores BOTH admin and staff accounts in a single table.
-// The `role` field (ADMIN / STAFF) determines what each user can do.
-// Replaces the old separate Admin + Staff tables.
-//
-// RELATIONSHIPS (as owner / source of FK in other tables):
-//   · One user (staff) → many clients      (via clients.createdById)
-//   · One user (staff) → many galleries    (via galleries.uploadedById)
-//   · One user (staff) → many invoices     (via invoices.createdById)
-//   · One user (staff) → many payments     (via payments.receivedById)
-//
-// NOTE: Each relation uses a distinct name (e.g. "ClientCreatedBy") because
-//       Prisma requires named relations when the same model appears as the
-//       target of multiple FK relations on a single source model.
-// =============================================================================
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  phone     String
-  password  String   // bcrypt-hashed — NEVER store plain text
-  role      Role     @default(STAFF)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Back-references: all records this user has created / is responsible for
-  clientsCreated    Client[]  @relation("ClientCreatedBy")
-  galleriesUploaded Gallery[] @relation("GalleryUploadedBy")
-  invoicesCreated   Invoice[] @relation("InvoiceCreatedBy")
-  paymentsReceived  Payment[] @relation("PaymentReceivedBy")
+  id                String                @id @default(uuid())
+  name              String
+  email             String                @unique
+  phone             String
+  password          String
+  role              Role                  @default(STAFF)
+  isActive          Boolean               @default(true)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  clientsCreated    Client[]              @relation("ClientCreatedBy")
+  galleriesUploaded Gallery[]             @relation("GalleryUploadedBy")
+  invoicesCreated   Invoice[]             @relation("InvoiceCreatedBy")
   passwordReset     PasswordResetSession?
+  paymentsReceived  Payment[]             @relation("PaymentReceivedBy")
 
   @@map("users")
 }
 
 model PasswordResetSession {
-  id                 String    @id @default(uuid())
-  otpHash            String
-  otpExpiresAt       DateTime
-  attemptCount       Int       @default(0)
-  lastSentAt         DateTime  @default(now())
-  verifiedAt         DateTime?
-  resetTokenHash     String?
+  id                  String    @id @default(uuid())
+  otpHash             String
+  otpExpiresAt        DateTime
+  attemptCount        Int       @default(0)
+  lastSentAt          DateTime  @default(now())
+  verifiedAt          DateTime?
+  resetTokenHash      String?
   resetTokenExpiresAt DateTime?
-  consumedAt         DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consumedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_sessions")
 }
 
-// =============================================================================
-// MODEL: clients
-//
-// A client record created by a staff member for one photography session.
-// This is the central table — galleries, photos, invoices, and payments all
-// link back to a client record.
-//
-// RELATIONSHIPS:
-//   · Many clients → one user (staff)        [createdById FK]
-//   · One client   → one gallery             [Gallery model, one-to-one]
-//   · One client   → many photos             [Photo model, one-to-many]
-//   · One client   → many invoices           [Invoice model, one-to-many]
-//   · One client   → many payments           [Payment model, one-to-many]
-//
-// galleryToken: a short-circuit lookup token stored directly on the client
-//   so you can find a client by token in one query without joining galleries.
-//   It stays in sync with gallery.token (both generated at gallery creation).
-// =============================================================================
 model Client {
   id            String        @id @default(uuid())
   clientName    String
@@ -135,180 +52,95 @@ model Client {
   photoFormat   PhotoFormat   @default(SOFTCOPY)
   paymentStatus PaymentStatus @default(PENDING)
   orderStatus   OrderStatus   @default(PENDING)
-  notes         String?       @db.Text
-  galleryToken  String        @unique  // mirrors gallery.token for fast lookup
+  notes         String?
+  galleryToken  String        @unique
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-
-  // Many clients → one staff member
-  // onDelete: Restrict — cannot delete a user who still has clients.
-  // Admin must delete or reassign the user's clients first.
-  createdById String
-  createdBy   User   @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-
-  // One-to-one (client has one gallery, created separately after booking)
-  gallery  Gallery?
-
-  // One-to-many
-  photos   Photo[]
-  invoices Invoice[]
-  payments Payment[]
+  createdById   String
+  createdBy     User          @relation("ClientCreatedBy", fields: [createdById], references: [id])
+  gallery       Gallery?
+  invoices      Invoice[]
+  payments      Payment[]
+  photos        Photo[]
 
   @@map("clients")
 }
 
-// =============================================================================
-// MODEL: galleries
-//
-// One gallery per client — it is the container for all uploaded photo files.
-// Created by a staff member after editing is complete.
-// Has its own public access `token` for the share link sent to the client.
-//
-// RELATIONSHIPS:
-//   · One gallery → one client            [clientId FK, unique = one-to-one]
-//   · Many galleries → one user (staff)   [uploadedById FK]
-//   · One gallery → many photos           [Photo model, one-to-many]
-//
-// onDelete behaviour:
-//   · If the parent Client is deleted → this Gallery is CASCADE deleted.
-//   · If this Gallery is deleted → all child Photos are CASCADE deleted.
-//     (Photo.clientId uses Restrict so MySQL does not create a dual-cascade
-//      path from Client → Photo. The gallery chain handles photo cleanup.)
-// =============================================================================
 model Gallery {
-  id        String   @id @default(uuid())
-  token     String   @unique  // same value as clients.galleryToken (both set at creation)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // One-to-one with Client
-  // clientId is @unique → enforces only ONE gallery per client at the DB level
-  // onDelete: Cascade → deleting the client auto-deletes this gallery (and its photos)
-  clientId String @unique
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  // Many galleries → one staff member (the one who uploaded the photos)
-  // onDelete: Restrict → cannot delete the user until galleries are reassigned/deleted
+  id           String   @id @default(uuid())
+  token        String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  clientId     String   @unique
   uploadedById String
-  uploadedBy   User   @relation("GalleryUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
-
-  // One gallery has many photos
-  photos Photo[]
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation("GalleryUploadedBy", fields: [uploadedById], references: [id])
+  photos       Photo[]
 
   @@map("galleries")
 }
 
-// =============================================================================
-// MODEL: photos
-//
-// Individual photo files that belong to both a Client and a Gallery.
-//
-// imageUrl : the URL used to display or download the photo.
-//            For local storage: "/uploads/photo-123.jpg"
-//            For Cloudinary:    "https://res.cloudinary.com/..."
-//
-// publicId : cloud storage asset identifier (e.g. Cloudinary's public_id).
-//            NULL when using local disk storage.
-//
-// fileName : the file's name on disk or in cloud storage.
-//
-// RELATIONSHIPS:
-//   · Many photos → one client    [clientId FK]
-//   · Many photos → one gallery   [galleryId FK]
-//
-// onDelete rules (IMPORTANT — avoids MySQL dual-cascade error):
-//   · galleryId → onDelete: Cascade
-//       When a Gallery is deleted, all its photos are auto-deleted.
-//   · clientId → onDelete: Restrict
-//       Photos cannot be deleted directly via the Client FK cascade because
-//       MySQL forbids two independent CASCADE paths to the same child table
-//       (Client → Photo directly AND Client → Gallery → Photo).
-//       In practice this is not a problem: deleting a Client cascades to its
-//       Gallery, which then cascades to Photos via galleryId. By the time
-//       MySQL checks the clientId RESTRICT constraint, all photos are already
-//       gone — so the delete succeeds cleanly.
-// =============================================================================
 model Photo {
   id        String   @id @default(uuid())
-  imageUrl  String   // display/download URL
-  publicId  String?  // cloud storage ID (null = locally stored)
-  fileName  String   // filename on disk or in cloud
+  imageUrl  String
+  publicId  String?
+  fileName  String
   createdAt DateTime @default(now())
-
-  // Many photos → one client (Restrict — see note above)
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Restrict)
-
-  // Many photos → one gallery (Cascade — photos die with their gallery)
+  clientId  String
   galleryId String
-  gallery   Gallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  client    Client   @relation(fields: [clientId], references: [id])
+  gallery   Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
 
   @@map("photos")
 }
 
-// =============================================================================
-// MODEL: invoices
-//
-// One client can have MANY invoices (unlike the old design which was one-to-one).
-// This supports: multiple sessions, split billing, re-invoicing, etc.
-//
-// invoiceNumber: human-readable sequential reference, e.g. "INV-0001".
-//   Generated in application code before inserting.
-//
-// RELATIONSHIPS:
-//   · Many invoices → one client      [clientId FK]
-//   · Many invoices → one user (staff) who created it   [createdById FK]
-//
-// onDelete:
-//   · clientId → Cascade   (deleting a client removes all their invoices)
-//   · createdById → Restrict (cannot delete a user who has issued invoices)
-// =============================================================================
 model Invoice {
   id            String        @id @default(uuid())
-  invoiceNumber String        @unique  // e.g. "INV-0001" — unique across the system
+  invoiceNumber String        @unique
   amount        Decimal       @db.Decimal(12, 2)
   paymentStatus PaymentStatus @default(PENDING)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-
-  // Many invoices → one client
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  // Many invoices → one staff member (creator)
-  createdById String
-  createdBy   User   @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  clientId      String
+  createdById   String
+  client        Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy     User          @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
 
   @@map("invoices")
 }
 
-// =============================================================================
-// MODEL: payments
-//
-// One client can have MANY payment records.
-// This supports partial payments, deposits, and payment installments.
-//
-// RELATIONSHIPS:
-//   · Many payments → one client      [clientId FK]
-//   · Many payments → one user (staff) who recorded it  [receivedById FK]
-//
-// onDelete:
-//   · clientId → Cascade   (deleting a client removes all their payment records)
-//   · receivedById → Restrict (cannot delete a user who has recorded payments)
-// =============================================================================
 model Payment {
-  id        String        @id @default(uuid())
-  amount    Decimal       @db.Decimal(12, 2)
-  status    PaymentStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-
-  // Many payments → one client
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  // Many payments → one staff member (the one who received/recorded the payment)
+  id           String        @id @default(uuid())
+  amount       Decimal       @db.Decimal(12, 2)
+  status       PaymentStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  clientId     String
   receivedById String
-  receivedBy   User   @relation("PaymentReceivedBy", fields: [receivedById], references: [id], onDelete: Restrict)
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  receivedBy   User          @relation("PaymentReceivedBy", fields: [receivedById], references: [id])
 
   @@map("payments")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum PhotoFormat {
+  SOFTCOPY
+  HARDCOPY
+  BOTH
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum OrderStatus {
+  PENDING
+  EDITING
+  READY
+  DELIVERED
 }

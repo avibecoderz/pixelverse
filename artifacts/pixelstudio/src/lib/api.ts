@@ -518,6 +518,7 @@ export async function createClient(data: {
   orderStatus?:  Client["orderStatus"];
   paymentStatus?: Client["paymentStatus"];
   notes?:        string;
+  createdById?:  string;
 }): Promise<Client> {
   return apiFetch<Client>("/api/clients", {
     method: "POST",
@@ -566,6 +567,7 @@ export async function updateClient(
     orderStatus?:  Client["orderStatus"];
     paymentStatus?:Client["paymentStatus"];
     notes?:        string | null;
+    createdById?:  string;
   }
 ): Promise<Client> {
   return apiFetch<Client>(`/api/clients/${clientId}`, {

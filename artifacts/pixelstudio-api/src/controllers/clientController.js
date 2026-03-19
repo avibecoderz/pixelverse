@@ -25,6 +25,30 @@ const VALID_PHOTO_FORMATS    = ["SOFTCOPY", "HARDCOPY", "BOTH"];
 const VALID_PAYMENT_STATUSES = ["PENDING", "PAID"];
 const VALID_ORDER_STATUSES   = ["PENDING", "EDITING", "READY", "DELIVERED"];
 
+const resolveClientOwnerId = async (req, currentOwnerId = null) => {
+  if (req.user.role === "staff") {
+    return req.user.id;
+  }
+
+  if (req.body.createdById === undefined) {
+    return currentOwnerId;
+  }
+
+  const createdById = trimField(req.body.createdById);
+  if (!createdById) return null;
+
+  const owner = await prisma.user.findFirst({
+    where: {
+      id:       createdById,
+      role:     "STAFF",
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  return owner ? owner.id : null;
+};
+
 // ─── Relation shape for list responses ───────────────────────────────────────
 // Used in getAllClients — lightweight summary per client.
 // Photos are NOT fetched in full — only a count is returned so the list
@@ -164,10 +188,11 @@ const getClientById = async (req, res, next) => {
 // ─── POST /api/clients ────────────────────────────────────────────────────────
 /**
  * Creates a new client record.
- * The logged-in user (staff or admin) is automatically set as the creator via JWT.
+ * Staff-created clients are automatically assigned to the logged-in staff member.
+ * Admin-created clients must be explicitly assigned to an active staff member.
  *
  * Required body fields: { clientName, phone, price }
- * Optional body fields: { photoFormat, orderStatus, paymentStatus, notes }
+ * Optional body fields: { photoFormat, orderStatus, paymentStatus, notes, createdById }
  *
  * orderStatus — defaults to PENDING. Can be set on create so clients that are
  *   already in progress (editing, ready, etc.) are recorded correctly from day one.
@@ -225,6 +250,15 @@ const createClient = async (req, res, next) => {
     // ── Gallery token ─────────────────────────────────────────────────────────
     // 16 random bytes → 32-character hex string. Cryptographically secure —
     // extremely unlikely to collide even with thousands of clients.
+    const ownerId = await resolveClientOwnerId(req);
+    if (!ownerId) {
+      return error(
+        res,
+        "createdById is required and must reference an active staff member.",
+        400
+      );
+    }
+
     const galleryToken = crypto.randomBytes(16).toString("hex");
 
     // ── Create record ─────────────────────────────────────────────────────────
@@ -238,7 +272,7 @@ const createClient = async (req, res, next) => {
         paymentStatus: resolvedPaymentStatus,
         notes:         normaliseText(req.body.notes), // blank/null → stored as null
         galleryToken,
-        createdById:   req.user.id, // always from JWT — body cannot override this
+        createdById:   ownerId,
       },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -257,7 +291,7 @@ const createClient = async (req, res, next) => {
  * Sending a field as null explicitly clears it (only valid for nullable fields like notes).
  *
  * Staff can update:  clientName, phone, price, photoFormat, orderStatus, notes
- * Admin can also update: paymentStatus
+ * Admin can also update: paymentStatus, createdById
  *
  * paymentStatus is restricted from staff on UPDATE because ongoing changes are
  * managed by the payments module — POST /api/payments/:clientId records money
@@ -266,7 +300,7 @@ const createClient = async (req, res, next) => {
  * createClient) because there is no prior audit trail to protect at that point —
  * it covers the case where a client paid cash before the record was entered.
  *
- * Fields that can never be changed: galleryToken, createdById, createdAt.
+ * Fields that can never be changed by staff: galleryToken, createdAt.
  */
 const updateClient = async (req, res, next) => {
   try {
@@ -341,6 +375,22 @@ const updateClient = async (req, res, next) => {
     // Not sending notes at all leaves it unchanged.
     if (req.body.notes !== undefined) {
       updateData.notes = normaliseText(req.body.notes);
+    }
+
+    if (req.body.createdById !== undefined) {
+      if (req.user.role === "staff") {
+        return error(res, "Staff cannot reassign client ownership.", 403);
+      }
+
+      const ownerId = await resolveClientOwnerId(req, existing.createdById);
+      if (!ownerId) {
+        return error(
+          res,
+          "createdById must reference an active staff member.",
+          400
+        );
+      }
+      updateData.createdById = ownerId;
     }
 
     // ── Guard: nothing to update ──────────────────────────────────────────────

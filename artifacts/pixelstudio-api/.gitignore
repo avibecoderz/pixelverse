@@ -1,4 +1,9 @@
 node_modules/
+.env
+.env.*
+!.env.example
+package-lock.json
+yarn.lock
 uploads/*
 !uploads/.gitkeep
 prisma/migrations/
