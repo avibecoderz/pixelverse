@@ -6,16 +6,10 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
 
 // ─── PORT ─────────────────────────────────────────────────────────────────────
-const rawPort = process.env.PORT;
 const isBuild = process.argv.includes("build");
+const rawPort = process.env.PORT || "5173";
 
-if (!rawPort && !isBuild) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = rawPort ? Number(rawPort) : 3000;
+const port = Number(rawPort);
 
 if (!isBuild && (Number.isNaN(port) || port <= 0)) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);

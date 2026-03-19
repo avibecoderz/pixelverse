@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard title="Total Staff" value={loadingStaff ? "…" : staff?.length ?? 0} icon={Briefcase} colorScheme="violet" />
-        <StatCard title="Total Clients" value={loadingClients ? "…" : clients?.length ?? 0} icon={Users} colorScheme="blue" />
+        <StatCard title="Total Customers" value={loadingClients ? "…" : clients?.length ?? 0} icon={Users} colorScheme="blue" />
         <StatCard title="Total Revenue" value={loadingPayments ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={NairaIcon} colorScheme="emerald"
           trend={{ value: 8, label: "this month" }} />
         <StatCard title="Pending Payments" value={loadingPayments ? "…" : pendingPayments} icon={Clock} colorScheme="amber" />

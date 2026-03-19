@@ -39,15 +39,15 @@ export default function ClientRecords() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-display font-bold tracking-tight">Client Records</h1>
+            <h1 className="text-3xl font-display font-bold tracking-tight">Customers Records</h1>
             <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold border border-primary/20">
               {clients?.length ?? 0} Total
             </span>
           </div>
-          <p className="text-muted-foreground mt-1">Manage clients, upload photos, and track order statuses.</p>
+          <p className="text-muted-foreground mt-1">Manage customers, upload photos, and track order statuses.</p>
         </div>
         <Button onClick={() => setLocation("/staff/clients/new")} size="lg" className="shadow-md gap-2">
-          + New Client
+          + New Customer
         </Button>
       </div>
 
@@ -57,7 +57,7 @@ export default function ClientRecords() {
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search client, invoice, phone..."
+              placeholder="Search customer, invoice, phone..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 bg-white border-border/60 h-9"
@@ -94,7 +94,7 @@ export default function ClientRecords() {
           <Table>
             <TableHeader className="bg-slate-50/50 sticky top-0 z-10 shadow-sm">
               <TableRow className="hover:bg-transparent border-b border-border/40">
-                <TableHead className="py-3.5 pl-6 font-semibold">Client</TableHead>
+                <TableHead className="py-3.5 pl-6 font-semibold">Customer</TableHead>
                 <TableHead className="font-semibold">Price</TableHead>
                 <TableHead className="font-semibold">Format</TableHead>
                 <TableHead className="font-semibold">Payment</TableHead>
