@@ -289,7 +289,7 @@ export function useCreateClient() {
       orderStatus?:   AppClient["orderStatus"];
       paymentStatus?: AppClient["paymentStatus"];
       notes?:         string;
-      staffId?:       string; // ignored — backend sets this from the JWT
+      staffId?:       string; // admin can assign ownership; staff is resolved from the JWT
       staffName?:     string; // ignored — backend reads from user record
       photos?:        string[]; // ignored — use uploadPhotos hook
     }) => {
@@ -306,7 +306,8 @@ export function useCreateClient() {
         paymentStatus: data.paymentStatus
           ? PAY_STATUS_API[data.paymentStatus]
           : undefined,
-        notes: data.notes,
+        notes:         data.notes,
+        createdById:   data.staffId || undefined,
       });
       return adaptClient(raw);
     },
@@ -332,7 +333,8 @@ export function useUpdateClient() {
         paymentStatus: data.paymentStatus
           ? PAY_STATUS_API[data.paymentStatus]
           : undefined,
-        notes: data.notes ?? null,
+        notes:         data.notes ?? null,
+        createdById:   data.staffId || undefined,
       });
       return adaptClient(raw);
     },

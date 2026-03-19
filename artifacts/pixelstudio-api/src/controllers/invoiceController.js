@@ -255,8 +255,9 @@ const markInvoicePaid = async (req, res, next) => {
     const existing = await prisma.invoice.findUnique({
       where:  { id: req.params.id },
       select: {
+        amount:         true,
         paymentStatus: true,
-        client:        { select: { createdById: true } },
+        client:        { select: { id: true, price: true, createdById: true } },
       },
     });
 
@@ -275,10 +276,45 @@ const markInvoicePaid = async (req, res, next) => {
     }
 
     // ── Update and return full invoice for immediate frontend re-render ────────
-    const updated = await prisma.invoice.update({
-      where:  { id: req.params.id },
-      data:   { paymentStatus: "PAID" },
-      select: FULL_INVOICE_SELECT,
+    const updated = await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.update({
+        where:  { id: req.params.id },
+        data:   { paymentStatus: "PAID" },
+        select: FULL_INVOICE_SELECT,
+      });
+
+      // Preserve the same audit/revenue trail used by the payments module.
+      await tx.payment.create({
+        data: {
+          amount:       existing.amount,
+          status:       "PAID",
+          clientId:     existing.client.id,
+          receivedById: req.user.id,
+        },
+      });
+
+      const aggregate = await tx.payment.aggregate({
+        where: { clientId: existing.client.id, status: "PAID" },
+        _sum:  { amount: true },
+      });
+
+      const totalPaid   = parseFloat(aggregate._sum.amount || 0);
+      const sessionPrice = parseFloat(existing.client.price);
+      const isFullyPaid = totalPaid >= sessionPrice;
+
+      await tx.client.update({
+        where: { id: existing.client.id },
+        data:  { paymentStatus: isFullyPaid ? "PAID" : "PENDING" },
+      });
+
+      if (isFullyPaid) {
+        await tx.invoice.updateMany({
+          where: { clientId: existing.client.id, paymentStatus: "PENDING" },
+          data:  { paymentStatus: "PAID" },
+        });
+      }
+
+      return invoice;
     });
 
     return success(res, "Invoice marked as paid", formatInvoiceResponse(updated));

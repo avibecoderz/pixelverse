@@ -9,8 +9,9 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "destructive" | "warning";
+  onOpenChange?: (open: boolean) => void;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 }
 
 export function ConfirmDialog({
@@ -20,11 +21,18 @@ export function ConfirmDialog({
   confirmLabel = "Yes, Delete",
   cancelLabel = "No, Cancel",
   variant = "destructive",
+  onOpenChange,
   onConfirm,
-  onCancel,
+  onCancel = () => {},
 }: ConfirmDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={open => !open && onCancel()}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        onOpenChange?.(nextOpen);
+        if (!nextOpen) onCancel();
+      }}
+    >
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2 mx-auto

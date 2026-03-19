@@ -38,6 +38,15 @@ const cleanupFiles = (files = []) => {
   });
 };
 
+const cleanupFileNames = (fileNames = []) => {
+  fileNames.forEach((fileName) => {
+    const filePath = path.join(UPLOAD_DIR, fileName);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (_) { /* best-effort */ }
+    }
+  });
+};
+
 /**
  * Build the public gallery URL that is sent to the end customer.
  * Uses FRONTEND_URL from .env so the host is never hardcoded.
@@ -129,27 +138,46 @@ const uploadPhotos = async (req, res, next) => {
         clientId,
         uploadedById: req.user.id,
       },
-      update: {}, // gallery already exists — nothing to change
+      update: {
+        // Keep dashboard ownership/counts aligned with the latest successful upload.
+        uploadedById: req.user.id,
+      },
     });
 
     // ── Insert Photo records ──────────────────────────────────────────────────
     // We use $transaction with individual create calls (not createMany) because
     // createMany returns only { count: N } — it does not return the created rows.
     // $transaction gives back every created record including auto-generated IDs.
-    const photoInserts = req.files.map((file) =>
-      prisma.photo.create({
-        data: {
-          fileName:  file.filename,               // stored name on disk
-          imageUrl:  `/uploads/${file.filename}`, // URL served by express.static
-          publicId:  null,                        // set to Cloudinary public_id when migrating
-          clientId,
-          galleryId: gallery.id,
-        },
-        select: { id: true, imageUrl: true, fileName: true, createdAt: true },
-      })
-    );
+    const existingPhotos = await prisma.photo.findMany({
+      where:  { galleryId: gallery.id },
+      select: { fileName: true },
+    });
+    const replacedFileNames = existingPhotos.map((photo) => photo.fileName);
 
-    const photos = await prisma.$transaction(photoInserts);
+    const photos = await prisma.$transaction(async (tx) => {
+      if (existingPhotos.length > 0) {
+        await tx.photo.deleteMany({ where: { galleryId: gallery.id } });
+      }
+
+      return Promise.all(
+        req.files.map((file) =>
+          tx.photo.create({
+            data: {
+              fileName:  file.filename,               // stored name on disk
+              imageUrl:  `/uploads/${file.filename}`, // URL served by express.static
+              publicId:  null,                        // set to Cloudinary public_id when migrating
+              clientId,
+              galleryId: gallery.id,
+            },
+            select: { id: true, imageUrl: true, fileName: true, createdAt: true },
+          })
+        )
+      );
+    });
+
+    if (replacedFileNames.length > 0) {
+      cleanupFileNames(replacedFileNames);
+    }
 
     // ── Advance order status ──────────────────────────────────────────────────
     // Move to READY only when it makes sense — do not overwrite READY with READY
