@@ -22,8 +22,11 @@ import {
   toggleStaffStatus, setStaffPassword,
   getClients, getClient, createClient, updateClient,
   getPayments, getGallery, uploadPhotos,
+  getAdminDashboard, getStaffDashboard,
   getImageUrl,
   type StaffMember,
+  type AdminDashboardData,
+  type StaffDashboardData,
 } from "@/lib/api";
 
 // ─── Normalised App Types ─────────────────────────────────────────────────────
@@ -200,7 +203,10 @@ export function useCreateStaff() {
       const raw = await createStaff({ ...rest, isActive: status !== "Inactive" });
       return adaptStaff(raw);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["staff"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["staff"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+    },
   });
 }
 
@@ -230,6 +236,7 @@ export function useUpdateStaff() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["staff"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
     },
   });
 }
@@ -247,7 +254,10 @@ export function useDeleteStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteStaff(id),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ["staff"] }),
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: ["staff"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+    },
   });
 }
 
@@ -311,7 +321,11 @@ export function useCreateClient() {
       });
       return adaptClient(raw);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "staff"] });
+    },
   });
 }
 
@@ -342,6 +356,8 @@ export function useUpdateClient() {
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["clients", vars.id] });
       qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "staff"] });
     },
   });
 }
@@ -358,6 +374,8 @@ export function useUploadPhotos() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["clients", vars.id] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "staff"] });
     },
   });
 }
@@ -391,5 +409,21 @@ export function usePayments() {
       const raw = await getPayments() as any[];
       return raw.map(adaptPayment);
     },
+  });
+}
+
+/** Fetch system-wide admin dashboard stats and recent activity. */
+export function useAdminDashboard() {
+  return useQuery<AdminDashboardData>({
+    queryKey: ["dashboard", "admin"],
+    queryFn:  getAdminDashboard,
+  });
+}
+
+/** Fetch personal staff dashboard stats and recent activity. */
+export function useStaffDashboard() {
+  return useQuery<StaffDashboardData>({
+    queryKey: ["dashboard", "staff"],
+    queryFn:  getStaffDashboard,
   });
 }
