@@ -47,8 +47,12 @@ export default function UploadPhotos() {
       await uploadPhotos.mutateAsync({ id: client!.id, files });
       setUploaded(true);
       toast({ title: "Photos uploaded!", description: "Gallery is now live for your client." });
-    } catch {
-      toast({ title: "Error", description: "Upload failed.", variant: "destructive" });
+    } catch (err: unknown) {
+      const description =
+        err instanceof Error
+          ? err.message
+          : "Upload failed. Please try again.";
+      toast({ title: "Error", description, variant: "destructive" });
     }
   };
 
