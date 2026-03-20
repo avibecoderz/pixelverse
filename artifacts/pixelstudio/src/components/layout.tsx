@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { StudioLogo } from "@/components/studio-logo";
 import { 
   LayoutDashboard, 
   Users, 
@@ -7,7 +8,6 @@ import {
   UserPlus, 
   Image as ImageIcon,
   LogOut,
-  Camera,
   Bell,
   Settings,
   ChevronRight
@@ -77,7 +77,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex h-20 items-center px-6 mb-2">
               <div className="flex items-center gap-3 font-display text-xl font-bold text-sidebar-primary-foreground">
                 <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-indigo-600 shadow-lg shadow-primary/20">
-                  <Camera className="w-5 h-5 text-white relative z-10" />
+                  <StudioLogo className="w-7 h-7 rounded-lg object-cover relative z-10" />
                   <div className="absolute inset-0 bg-white/20 blur-md rounded-xl"></div>
                 </div>
                 PixelStudio
