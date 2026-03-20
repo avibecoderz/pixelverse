@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Users, Image as ImageIcon, Briefcase, ChevronRight, Clock, type LucideIcon } from "lucide-react";
-import { useAdminDashboard, useStaff, useClients } from "@/hooks/use-data";
+import { useAdminDashboard, useClients, useStaff } from "@/hooks/use-data";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -39,7 +39,7 @@ export default function AdminDashboard() {
   const totalRevenue = stats?.totalRevenue ?? 0;
   const pendingPayments = stats?.pendingPaymentsCount ?? 0;
   const uploadedGalleries = stats?.totalGalleries ?? 0;
-  const totalStaff = stats?.totalStaff ?? staff?.filter((s) => s.status === "Active").length ?? 0;
+  const totalStaff = stats?.totalStaff ?? staff?.filter((member) => member.status === "Active").length ?? 0;
   const totalClients = stats?.totalClients ?? clients?.length ?? 0;
 
   return (
@@ -92,7 +92,11 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             {loadingDashboard ? (
-              <div className="space-y-3 p-5">{[1, 2, 3].map((i) => <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse" />)}</div>
+              <div className="space-y-3 p-5">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+                ))}
+              </div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
@@ -105,12 +109,17 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
-                  {recentPayments.slice(0, 6).map((payment, i) => (
-                    <tr key={payment.id} className={`hover:bg-slate-50/60 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-muted/20"}`}>
+                  {recentPayments.slice(0, 6).map((payment, index) => (
+                    <tr
+                      key={payment.id}
+                      className={`hover:bg-slate-50/60 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-muted/20"}`}
+                    >
                       <td className="py-3.5 pl-6 font-semibold text-foreground">{payment.client.clientName}</td>
                       <td className="py-3.5 text-muted-foreground text-sm">{payment.receivedBy.name}</td>
-                      <td className="py-3.5 font-bold text-foreground">N{parseFloat(payment.amount).toLocaleString()}</td>
-                      <td className="py-3.5"><StatusBadge status={payment.status === "PAID" ? "Paid" : "Pending"} /></td>
+                      <td className="py-3.5 font-bold text-foreground">NGN {parseFloat(payment.amount).toLocaleString()}</td>
+                      <td className="py-3.5">
+                        <StatusBadge status={payment.status === "PAID" ? "Paid" : "Pending"} />
+                      </td>
                       <td className="py-3.5 text-right pr-6 text-muted-foreground text-sm">
                         {new Date(payment.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </td>
@@ -134,15 +143,21 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="p-5 space-y-4">
             {loadingStaff ? (
-              <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}</div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="h-14 bg-slate-100 rounded-xl animate-pulse" />
+                ))}
+              </div>
             ) : (
               staff?.slice(0, 5).map((member) => (
                 <div key={member.id} className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-sm ${
-                    member.status === "Active"
-                      ? "bg-gradient-to-br from-violet-100 to-indigo-100 text-violet-700 border border-violet-200/50"
-                      : "bg-slate-100 text-slate-500"
-                  }`}>
+                  <div
+                    className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-sm ${
+                      member.status === "Active"
+                        ? "bg-gradient-to-br from-violet-100 to-indigo-100 text-violet-700 border border-violet-200/50"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
                     {member.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -174,7 +189,11 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent className="p-0">
           {loadingClients ? (
-            <div className="space-y-3 p-5">{[1, 2, 3].map((i) => <div key={i} className="h-12 bg-slate-100 rounded-lg animate-pulse" />)}</div>
+            <div className="space-y-3 p-5">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="h-12 bg-slate-100 rounded-lg animate-pulse" />
+              ))}
+            </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
@@ -188,10 +207,10 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
-                {clients?.slice(0, 5).map((client, i) => (
+                {clients?.slice(0, 5).map((client, index) => (
                   <tr
                     key={client.id}
-                    className={`hover:bg-slate-50/60 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-muted/20"}`}
+                    className={`hover:bg-slate-50/60 transition-colors cursor-pointer ${index % 2 === 0 ? "bg-white" : "bg-muted/20"}`}
                     onClick={() => setLocation(`/staff/clients/${client.id}`)}
                   >
                     <td className="py-3.5 pl-6 font-semibold text-foreground">{client.clientName}</td>
@@ -199,7 +218,7 @@ export default function AdminDashboard() {
                     <td className="py-3.5"><StatusBadge status={client.photoFormat} /></td>
                     <td className="py-3.5"><StatusBadge status={client.orderStatus} /></td>
                     <td className="py-3.5"><StatusBadge status={client.paymentStatus} /></td>
-                    <td className="py-3.5 text-right pr-6 font-bold text-foreground">N{client.price.toLocaleString()}</td>
+                    <td className="py-3.5 text-right pr-6 font-bold text-foreground">NGN {client.price.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

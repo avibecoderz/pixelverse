@@ -1,51 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
-<<<<<<< HEAD
-import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, CreditCard, ImageIcon, Clock, type LucideIcon } from "lucide-react";
-import { useClients } from "@/hooks/use-data";
-=======
 import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, DollarSign, ImageIcon, Clock } from "lucide-react";
 import { useClients, useStaffDashboard } from "@/hooks/use-data";
->>>>>>> 354f1e634ca43dd417fe79b55e09e23667655b80
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-
-const NairaIcon = (({ className, ...props }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-    {...props}
-  >
-    <path d="M7 5v14" />
-    <path d="M17 5v14" />
-    <path d="M7 7l10 10" />
-    <path d="M7 17V7h10" />
-    <path d="M5 10h14" />
-    <path d="M5 14h14" />
-  </svg>
-)) as LucideIcon;
 
 export default function StaffDashboard() {
   const { data: dashboard, isLoading: loadingDashboard } = useStaffDashboard();
   const { data: clients, isLoading } = useClients();
   const [, setLocation] = useLocation();
   const userName = localStorage.getItem("user_name") || "Staff Member";
-  const clients_ = clients ?? [];
+  const clientList = clients ?? [];
   const stats = dashboard?.stats;
 
   const totalRevenue = stats?.totalRevenue ?? 0;
-  const pendingPayments = clients_.filter((client) => client.paymentStatus === "Pending").length;
-  const pendingEditing = stats?.pendingEditingCount ?? clients_.filter((client) => client.orderStatus === "Editing").length;
-  const readyToUpload = stats?.readyForUploadCount ?? clients_.filter((client) => client.orderStatus === "Ready" && client.photoCount === 0).length;
-  const uploadedGalleries = stats?.uploadedGalleriesCount ?? clients_.filter((client) => client.photoCount > 0).length;
-  const totalClients = stats?.totalClients ?? clients_.length;
+  const pendingPayments = clientList.filter((client) => client.paymentStatus === "Pending").length;
+  const pendingEditing = stats?.pendingEditingCount ?? clientList.filter((client) => client.orderStatus === "Pending").length;
+  const readyToUpload =
+    stats?.readyForUploadCount ??
+    clientList.filter((client) => client.orderStatus === "Editing").length;
+  const uploadedGalleries =
+    stats?.uploadedGalleriesCount ??
+    clientList.filter((client) => client.photoCount > 0).length;
+  const totalClients = stats?.totalClients ?? clientList.length;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -74,14 +52,6 @@ export default function StaffDashboard() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
-<<<<<<< HEAD
-        <StatCard title="Total Customers" value={isLoading ? "…" : clients_.length} icon={Users} colorScheme="violet" />
-        <StatCard title="Pending Editing" value={isLoading ? "…" : pendingEditing} icon={Camera} colorScheme="amber"
-          trend={pendingEditing > 0 ? { value: pendingEditing, label: "need attention" } : undefined} />
-        <StatCard title="Uploaded Galleries" value={isLoading ? "…" : uploadedGalleries} icon={ImageIcon} colorScheme="emerald" />
-        <StatCard title="Total Amount" value={isLoading ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={NairaIcon} colorScheme="blue" />
-        <StatCard title="Pending Payments" value={isLoading ? "…" : pendingPayments} icon={Clock} colorScheme="amber" />
-=======
         <StatCard title="Total Clients" value={loadingDashboard && isLoading ? "..." : totalClients} icon={Users} colorScheme="violet" />
         <StatCard
           title="Pending Editing"
@@ -91,9 +61,8 @@ export default function StaffDashboard() {
           trend={pendingEditing > 0 ? { value: pendingEditing, label: "need attention" } : undefined}
         />
         <StatCard title="Uploaded Galleries" value={loadingDashboard && isLoading ? "..." : uploadedGalleries} icon={ImageIcon} colorScheme="emerald" />
-        <StatCard title="Total Revenue" value={loadingDashboard ? "..." : `N${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="blue" />
+        <StatCard title="Total Revenue" value={loadingDashboard ? "..." : `NGN ${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="blue" />
         <StatCard title="Pending Payments" value={isLoading ? "..." : pendingPayments} icon={Clock} colorScheme="amber" />
->>>>>>> 354f1e634ca43dd417fe79b55e09e23667655b80
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -108,18 +77,29 @@ export default function StaffDashboard() {
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="space-y-3 p-5">{[1, 2, 3].map((i) => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)}</div>
-            ) : clients_.length === 0 ? (
+              <div className="space-y-3 p-5">
+                {[1, 2, 3].map((item) => (
+                  <div key={item} className="h-16 bg-slate-100 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : clientList.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground">
                 <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p>No clients yet. <Link href="/staff/clients/new" className="text-primary underline">Add your first.</Link></p>
+                <p>
+                  No clients yet.{" "}
+                  <Link href="/staff/clients/new" className="text-primary underline">
+                    Add your first.
+                  </Link>
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-border/30">
-                {clients_.slice(0, 5).map((client, i) => (
+                {clientList.slice(0, 5).map((client, index) => (
                   <div
                     key={client.id}
-                    className={`flex items-center justify-between p-4 hover:bg-slate-50/80 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-muted/20"}`}
+                    className={`flex items-center justify-between p-4 hover:bg-slate-50/80 transition-colors cursor-pointer ${
+                      index % 2 === 0 ? "bg-white" : "bg-muted/20"
+                    }`}
                     onClick={() => setLocation(`/staff/clients/${client.id}`)}
                   >
                     <div className="flex items-center gap-3">
@@ -128,7 +108,9 @@ export default function StaffDashboard() {
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">{client.clientName}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(client.date).toLocaleDateString()} · {client.photoCount} photos</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(client.date).toLocaleDateString()} - {client.photoCount} photos
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -161,7 +143,7 @@ export default function StaffDashboard() {
             </CardHeader>
             <CardContent className="p-4 space-y-2.5">
               {[
-                { label: "Add New Customer", icon: UserPlus, href: "/staff/clients/new", variant: "default" as const },
+                { label: "Add New Client", icon: UserPlus, href: "/staff/clients/new", variant: "default" as const },
                 { label: "Upload Photos", icon: UploadCloud, href: "/staff/clients", variant: "outline" as const },
                 { label: "View All Records", icon: Users, href: "/staff/clients", variant: "outline" as const },
               ].map(({ label, icon: Icon, href, variant }) => (
