@@ -141,7 +141,7 @@ export default function InvoicePreview() {
                   <p>No 16, Sauna Kawaji Nasarawa</p>
                   <p>Kano State, Nigeria</p>
                   <p className="mt-1 font-medium text-slate-400">gbsmphotography@gmail.com</p>
-                  <h3>08061361417, 08161606537</h3>
+                  <h3>08161606537, 08061361417</h3>h3>
                 </div>
               </div>
               <div className="text-right">
