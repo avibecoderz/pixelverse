@@ -12,9 +12,12 @@
  * All ownership checks compare this field against req.user.id from the JWT.
  */
 
-const crypto             = require("crypto");
-const prisma             = require("../utils/prismaClient");
-const { success, error } = require("../utils/responseUtils");
+const crypto               = require("crypto");
+const fs                   = require("fs");
+const path                 = require("path");
+const prisma               = require("../utils/prismaClient");
+const { UPLOAD_DIR }       = require("../utils/uploadUtils");
+const { success, error }   = require("../utils/responseUtils");
 
 // ─── Enum allow-lists ─────────────────────────────────────────────────────────
 // Match the Prisma schema enums exactly (uppercase).
@@ -24,6 +27,15 @@ const { success, error } = require("../utils/responseUtils");
 const VALID_PHOTO_FORMATS    = ["SOFTCOPY", "HARDCOPY", "BOTH"];
 const VALID_PAYMENT_STATUSES = ["PENDING", "PAID"];
 const VALID_ORDER_STATUSES   = ["PENDING", "EDITING", "READY", "DELIVERED"];
+
+const cleanupFileNames = (fileNames = []) => {
+  fileNames.forEach((fileName) => {
+    const filePath = path.join(UPLOAD_DIR, fileName);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (_) { /* best-effort */ }
+    }
+  });
+};
 
 const resolveClientOwnerId = async (req, currentOwnerId = null) => {
   if (req.user.role === "staff") {
@@ -432,14 +444,21 @@ const updateClient = async (req, res, next) => {
  */
 const deleteClient = async (req, res, next) => {
   try {
-    const existing = await prisma.client.findUnique({ where: { id: req.params.id } });
+    const existing = await prisma.client.findUnique({
+      where: { id: req.params.id },
+      include: {
+        photos: { select: { fileName: true } },
+      },
+    });
     if (!existing) return error(res, "Client not found", 404);
 
     if (req.user.role === "staff" && existing.createdById !== req.user.id) {
       return error(res, "Access denied. You can only delete your own clients.", 403);
     }
 
+    const fileNamesToDelete = existing.photos.map((photo) => photo.fileName);
     await prisma.client.delete({ where: { id: req.params.id } });
+    cleanupFileNames(fileNamesToDelete);
     return success(res, `Client record for "${existing.clientName}" has been deleted`);
   } catch (err) {
     next(err);

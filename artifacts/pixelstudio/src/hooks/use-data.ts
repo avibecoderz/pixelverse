@@ -250,14 +250,18 @@ export function useSetStaffPassword() {
   });
 }
 
-/** Permanently remove a staff account (blocked if they have linked records). */
+/** Permanently remove a staff account and clean up or reassign linked records. */
 export function useDeleteStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteStaff(id),
     onSuccess:  () => {
       qc.invalidateQueries({ queryKey: ["staff"] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "admin"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "staff"] });
     },
   });
 }
