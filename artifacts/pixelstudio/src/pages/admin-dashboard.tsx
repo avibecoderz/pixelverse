@@ -61,9 +61,9 @@ export default function AdminDashboard() {
 
 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
   <StatCard title="Total Staff" value={loadingDashboard && loadingStaff ? "..." : totalStaff} icon={Briefcase} colorScheme="violet" />
-  <StatCard title="Total Clients" value={loadingDashboard && loadingClients ? "..." : totalClients} icon={Users} colorScheme="blue" />
+  <StatCard title="Total Customers" value={loadingDashboard && loadingClients ? "..." : totalClients} icon={Users} colorScheme="blue" />
   <StatCard
-    title="Total Revenue"
+    title="Total Amount"
     value={loadingDashboard ? "..." : `N${totalRevenue.toLocaleString()}`}
     icon={NairaIcon}
     colorScheme="emerald"
