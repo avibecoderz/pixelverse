@@ -21,10 +21,11 @@ import {
   getStaff, createStaff, updateStaff, deleteStaff,
   toggleStaffStatus, setStaffPassword,
   getClients, getClient, createClient, updateClient,
-  getPayments, getGallery, uploadPhotos,
+  getPayments, getInvoices, getGallery, uploadPhotos,
   getAdminDashboard, getStaffDashboard,
   getImageUrl,
   type StaffMember,
+  type Invoice,
   type AdminDashboardData,
   type StaffDashboardData,
 } from "@/lib/api";
@@ -409,6 +410,14 @@ export function usePayments() {
       const raw = await getPayments() as any[];
       return raw.map(adaptPayment);
     },
+  });
+}
+
+/** Fetch all invoices visible to the logged-in user. */
+export function useInvoices() {
+  return useQuery<Invoice[]>({
+    queryKey: ["invoices"],
+    queryFn: getInvoices,
   });
 }
 
