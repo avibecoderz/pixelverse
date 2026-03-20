@@ -490,7 +490,7 @@ export async function setStaffPassword(
 
 /**
  * Permanently remove a staff account.
- * Blocked if the staff member has any linked clients, galleries, invoices, or payments.
+ * Owned client records are deleted; remaining shared records are reassigned by the backend.
  */
 export async function deleteStaff(staffId: string): Promise<void> {
   await apiFetch(`/api/staff/${staffId}`, { method: "DELETE" });

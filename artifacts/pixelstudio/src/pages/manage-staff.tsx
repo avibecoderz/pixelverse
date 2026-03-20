@@ -156,7 +156,7 @@ export default function ManageStaff() {
     if (!deleteTarget) return;
     try {
       await deleteStaff.mutateAsync(deleteTarget.id);
-      toast({ title: "Removed", description: `${deleteTarget.name} has been removed.` });
+      toast({ title: "Removed", description: `${deleteTarget.name} and their linked records have been removed.` });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed to remove staff";
       toast({ title: "Cannot Delete", description: msg, variant: "destructive" });
@@ -466,7 +466,7 @@ export default function ManageStaff() {
         open={!!deleteTarget}
         onOpenChange={open => !open && setDeleteTarget(null)}
         title={`Remove ${deleteTarget?.name}?`}
-        description="This will permanently delete their account. This action cannot be undone. Staff with existing client records, galleries, or payments cannot be removed."
+        description="This will permanently delete this staff account. Client records owned by this staff member will also be removed, including uploaded gallery photos. Shared invoices, payments, and gallery ownership on other records will be reassigned to the current admin."
         confirmLabel="Remove Staff"
         variant="destructive"
         onConfirm={confirmDelete}
