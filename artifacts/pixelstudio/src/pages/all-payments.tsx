@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePayments, useClients, useUpdateClient } from "@/hooks/use-data";
+import { usePayments, useClients, useInvoices, useUpdateClient } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,54 +12,63 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function AllPayments() {
   const { data: payments, isLoading: loadingPayments } = usePayments();
-  const { data: clients,  isLoading: loadingClients  } = useClients();
+  const { data: invoices, isLoading: loadingInvoices } = useInvoices();
+  const { data: clients, isLoading: loadingClients } = useClients();
   const updateClient = useUpdateClient();
   const { toast } = useToast();
-  const [filter, setFilter]       = useState("All");
+  const [filter, setFilter] = useState("All");
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // Show the spinner until BOTH queries have settled so the Status column
-  // never briefly shows stale "Paid" data while clients are still loading.
-  const isLoading = loadingPayments || loadingClients;
+  // Keep the table hidden until every source it relies on is ready so status
+  // and invoice labels never flash stale values.
+  const isLoading = loadingPayments || loadingClients || loadingInvoices;
 
-  // Build a quick lookup: clientId → client's current paymentStatus.
-  // Populated once clients resolve; empty map during the loading phase is fine
-  // because the table is hidden behind the loading spinner until both resolve.
-  const clientStatusMap = new Map(
-    (clients ?? []).map(c => [c.id, c.paymentStatus])
-  );
+  const clientStatusMap = new Map((clients ?? []).map((client) => [client.id, client.paymentStatus]));
+  const latestInvoiceByClientId = new Map<string, NonNullable<(typeof invoices)>[number]>();
+  for (const invoice of invoices ?? []) {
+    const clientId = invoice.client?.id;
+    if (clientId && !latestInvoiceByClientId.has(clientId)) {
+      latestInvoiceByClientId.set(clientId, invoice);
+    }
+  }
 
-  // Revenue stats from actual recorded payment amounts (all payment records are PAID).
-  const totalRevenue = (payments ?? []).reduce((sum, p) => sum + p.amount, 0);
-  // Paid invoice count = payment transactions recorded (each one represents a received payment).
-  const paidCount    = payments?.length ?? 0;
-  // Pending collection = sum of session prices for clients who haven't paid yet.
-  const pendingRevenue = (clients ?? [])
-    .filter(c => c.paymentStatus === 'Pending')
-    .reduce((sum, c) => sum + c.price, 0);
+  // The summary cards on this page should reflect invoice totals.
+  const paidInvoices = (invoices ?? []).filter((invoice) => invoice.paymentStatus === "PAID");
+  const pendingInvoices = (invoices ?? []).filter((invoice) => invoice.paymentStatus === "PENDING");
+  const totalRevenue = paidInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
+  const paidCount = paidInvoices.length;
+  const pendingRevenue = pendingInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
 
-  // Filter by the client's live paymentStatus, not the transaction record's status.
-  const filteredPayments = (payments ?? []).filter(p => {
+  const filteredPayments = (payments ?? []).filter((payment) => {
     if (filter === "All") return true;
-    const clientStatus = clientStatusMap.get(p.clientId) ?? p.paymentStatus;
-    return clientStatus === filter;
+    const invoiceStatus = latestInvoiceByClientId.get(payment.clientId)?.paymentStatus;
+    const liveStatus = invoiceStatus === "PAID"
+      ? "Paid"
+      : invoiceStatus === "PENDING"
+        ? "Pending"
+        : (clientStatusMap.get(payment.clientId) ?? payment.paymentStatus);
+    return liveStatus === filter;
   });
 
   const togglePaymentStatus = async (
-    clientId:    string,
+    clientId: string,
     currentStatus: "Paid" | "Pending",
-    clientName:  string,
+    clientName: string,
   ) => {
     const newStatus = currentStatus === "Paid" ? "Pending" : "Paid";
     setTogglingId(clientId);
     try {
       await updateClient.mutateAsync({ id: clientId, paymentStatus: newStatus });
       toast({
-        title:       newStatus === "Paid" ? "Marked as Paid" : "Marked as Pending",
+        title: newStatus === "Paid" ? "Marked as Paid" : "Marked as Pending",
         description: `${clientName}'s payment status updated to ${newStatus}.`,
       });
     } catch {
-      toast({ title: "Error", description: "Failed to update payment status.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to update payment status.",
+        variant: "destructive",
+      });
     } finally {
       setTogglingId(null);
     }
@@ -75,19 +84,19 @@ export default function AllPayments() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Total Revenue"
-          value={loadingPayments ? "…" : `₦${totalRevenue.toLocaleString()}`}
+          value={loadingInvoices ? "..." : `NGN ${totalRevenue.toLocaleString()}`}
           icon={DollarSign}
           colorScheme="violet"
         />
         <StatCard
           title="Paid Invoices"
-          value={loadingPayments ? "…" : paidCount}
+          value={loadingInvoices ? "..." : paidCount}
           icon={CheckCircle2}
           colorScheme="emerald"
         />
         <StatCard
           title="Pending Collection"
-          value={loadingClients ? "…" : `₦${pendingRevenue.toLocaleString()}`}
+          value={loadingInvoices ? "..." : `NGN ${pendingRevenue.toLocaleString()}`}
           icon={Clock}
           colorScheme="amber"
         />
@@ -117,7 +126,6 @@ export default function AllPayments() {
         </div>
 
         <CardContent className="p-0">
-          {/* TooltipProvider wraps the whole table — one provider, not one per row */}
           <TooltipProvider>
             <Table>
               <TableHeader className="bg-slate-50/50 sticky top-0 z-10 shadow-sm">
@@ -150,35 +158,39 @@ export default function AllPayments() {
                         </div>
                         <h3 className="text-lg font-medium text-foreground mb-1">No payments found</h3>
                         <p className="max-w-sm mb-4">No invoices match your selected filter.</p>
-                        <Button variant="outline" onClick={() => setFilter("All")} className="bg-white">Show All</Button>
+                        <Button variant="outline" onClick={() => setFilter("All")} className="bg-white">
+                          Show All
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredPayments.map((payment, index) => {
-                    // Use the client's live paymentStatus (from the clients query).
-                    // Falls back to the transaction record's own status only if the
-                    // clientId is missing (shouldn't happen in practice).
-                    const liveStatus  = clientStatusMap.get(payment.clientId) ?? payment.paymentStatus;
-                    const isToggling  = togglingId === payment.clientId;
-                    const isPending   = liveStatus === 'Pending';
+                    const latestInvoice = latestInvoiceByClientId.get(payment.clientId);
+                    const liveStatus = latestInvoice?.paymentStatus === "PAID"
+                      ? "Paid"
+                      : latestInvoice?.paymentStatus === "PENDING"
+                        ? "Pending"
+                        : (clientStatusMap.get(payment.clientId) ?? payment.paymentStatus);
+                    const isToggling = togglingId === payment.clientId;
+                    const isPending = liveStatus === "Pending";
 
                     return (
                       <TableRow
                         key={payment.id}
-                        className={`group transition-colors hover:bg-slate-50/80 ${index % 2 === 0 ? 'bg-white' : 'bg-muted/20'}`}
+                        className={`group transition-colors hover:bg-slate-50/80 ${index % 2 === 0 ? "bg-white" : "bg-muted/20"}`}
                       >
                         <TableCell className="pl-6 py-4">
                           <span className="font-mono text-xs font-medium bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200">
-                            {payment.invoiceId || "—"}
+                            {latestInvoice?.invoiceNumber ?? payment.invoiceId ?? "-"}
                           </span>
                         </TableCell>
                         <TableCell className="font-semibold text-foreground text-base">{payment.clientName}</TableCell>
                         <TableCell className="text-muted-foreground">{payment.staffName}</TableCell>
                         <TableCell className="text-muted-foreground text-sm font-medium">
-                          {new Date(payment.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {new Date(payment.date).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
                         </TableCell>
-                        <TableCell className="font-bold text-foreground text-base">₦{payment.amount.toLocaleString()}</TableCell>
+                        <TableCell className="font-bold text-foreground text-base">NGN {payment.amount.toLocaleString()}</TableCell>
                         <TableCell>
                           <StatusBadge status={liveStatus} />
                         </TableCell>
@@ -192,8 +204,8 @@ export default function AllPayments() {
                                 onClick={() => togglePaymentStatus(payment.clientId, liveStatus, payment.clientName)}
                                 className={`h-8 w-8 rounded-lg transition-colors ${
                                   isPending
-                                    ? 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
-                                    : 'text-slate-500 hover:text-amber-600 hover:bg-amber-50'
+                                    ? "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                    : "text-slate-500 hover:text-amber-600 hover:bg-amber-50"
                                 }`}
                               >
                                 {isToggling ? (
@@ -206,7 +218,7 @@ export default function AllPayments() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              {isPending ? 'Mark as Paid' : 'Mark as Pending'}
+                              {isPending ? "Mark as Paid" : "Mark as Pending"}
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
