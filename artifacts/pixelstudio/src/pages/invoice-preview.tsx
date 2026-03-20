@@ -139,7 +139,8 @@ export default function InvoicePreview() {
                 <div className="space-y-1 text-slate-500 text-sm">
                   <p>No 16, Sauna Kawaji Nasarawa</p>
                   <p>Kano State, Nigeria</p>
-                  <p className="mt-1.5 font-medium text-slate-600">gbsmphotography@gmail.com</p>
+                  <p className="mt-1 font-medium text-slate-400">gbsmphotography@gmail.com</p>
+                  <h3>08061361417, 08161606537</h3>
                 </div>
               </div>
               <div className="text-right">

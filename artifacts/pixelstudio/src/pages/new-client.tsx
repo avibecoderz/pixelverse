@@ -118,7 +118,7 @@ export default function NewClient() {
       setSuccessData(localClient);
       toast({
         title:       "Saved offline",
-        description: "This client will sync automatically when you're back online.",
+        description: "This customer will sync automatically when you're back online.",
       });
       return;
     }
@@ -131,7 +131,7 @@ export default function NewClient() {
       });
       setIsOfflineSave(false);
       setSuccessData(result);
-      toast({ title: "Client record created!", description: "You can now upload photos for this client." });
+      toast({ title: "Customer record created!", description: "You can now upload photos for this customer." });
 
     } catch (err: unknown) {
       // navigator.onLine can report "online" even when the server is unreachable
@@ -154,7 +154,7 @@ export default function NewClient() {
       } else {
         toast({
           title:       "Error",
-          description: "Failed to create client. Please try again.",
+          description: "Failed to create customer. Please try again.",
           variant:     "destructive",
         });
       }
@@ -194,7 +194,7 @@ export default function NewClient() {
                 : <Check className="w-10 h-10" />}
             </div>
             <h2 className="text-3xl font-display font-bold">
-              {isOfflineSave ? "Saved Offline" : "Client Created!"}
+              {isOfflineSave ? "Saved Offline" : "Customer Created!"}
             </h2>
             <p className={isOfflineSave ? "text-amber-50 mt-2 text-center" : "text-emerald-50 mt-2"}>
               {isOfflineSave
@@ -206,7 +206,7 @@ export default function NewClient() {
           <CardContent className="p-8 space-y-6 bg-white">
             <div className="grid grid-cols-2 gap-4 p-5 bg-slate-50 rounded-xl border border-slate-100">
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Client</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Customer</p>
                 <p className="font-bold text-xl text-slate-900">{successData.clientName}</p>
                 <p className="text-sm text-slate-500 mt-0.5">{successData.phone}</p>
               </div>
@@ -254,8 +254,8 @@ export default function NewClient() {
           </CardContent>
 
           <CardFooter className="bg-slate-50 border-t p-5 flex gap-3 flex-wrap">
-            <Button variant="outline" className="flex-1 bg-white" onClick={() => setLocation("/staff/clients")}>
-              View All Clients
+            <Button variant="outline" className="flex-1 bg-white" onClick={() => setLocation("/staff/customer")}>
+              View All Customers
             </Button>
             {isOfflineSave ? (
               <Button
@@ -291,9 +291,9 @@ export default function NewClient() {
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h1 className="text-3xl font-display font-bold tracking-tight">New Client Record</h1>
+        <h1 className="text-3xl font-display font-bold tracking-tight">New Customer Record</h1>
         <p className="text-muted-foreground mt-1">
-          Create a client record first. Upload photos separately after the shoot is edited.
+          Create a customer record first. Upload photos separately after the shoot is edited.
         </p>
         {!isOnline && (
           <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5">
@@ -307,21 +307,21 @@ export default function NewClient() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card className="border-border/60 shadow-sm">
             <CardHeader className="bg-slate-50/50 border-b border-border/40">
-              <CardTitle className="font-display">Client Information</CardTitle>
+              <CardTitle className="font-display">Customer Information</CardTitle>
               <CardDescription>Basic contact and billing details.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
               <FormField control={form.control} name="clientName" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client Full Name</FormLabel>
-                  <FormControl><Input placeholder="John Doe" className="h-11" {...field} /></FormControl>
+                  <FormLabel>Customer Full Name</FormLabel>
+                  <FormControl><Input placeholder="Mansur Abdul" className="h-11" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="phone" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
-                  <FormControl><Input placeholder="(555) 000-0000" className="h-11" {...field} /></FormControl>
+                  <FormControl><Input placeholder="08023456789" className="h-11" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -380,7 +380,7 @@ export default function NewClient() {
                     <FormLabel>Notes (Optional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Special requests, shoot location, outfits..."
+                        placeholder="Enter your Img Number (It can be more than one)."
                         className="resize-none min-h-[90px]"
                         {...field}
                       />
@@ -405,7 +405,7 @@ export default function NewClient() {
               {createClient.isPending
                 ? "Saving..."
                 : isOnline
-                  ? "Save Client Record"
+                  ? "Save Customer Record"
                   : "Save Offline"}
             </Button>
           </div>

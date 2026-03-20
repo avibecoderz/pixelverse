@@ -59,6 +59,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+<<<<<<< HEAD
+        <StatCard title="Total Staff" value={loadingStaff ? "…" : staff?.length ?? 0} icon={Briefcase} colorScheme="violet" />
+        <StatCard title="Total Customers" value={loadingClients ? "…" : clients?.length ?? 0} icon={Users} colorScheme="blue" />
+        <StatCard title="Total Revenue" value={loadingPayments ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={NairaIcon} colorScheme="emerald"
+          trend={{ value: 8, label: "this month" }} />
+        <StatCard title="Pending Payments" value={loadingPayments ? "…" : pendingPayments} icon={Clock} colorScheme="amber" />
+        <StatCard title="Galleries Live" value={loadingClients ? "…" : uploadedGalleries} icon={ImageIcon} colorScheme="rose" />
+=======
         <StatCard title="Total Staff" value={loadingDashboard && loadingStaff ? "..." : totalStaff} icon={Briefcase} colorScheme="violet" />
         <StatCard title="Total Clients" value={loadingDashboard && loadingClients ? "..." : totalClients} icon={Users} colorScheme="blue" />
         <StatCard
@@ -70,6 +78,7 @@ export default function AdminDashboard() {
         />
         <StatCard title="Pending Payments" value={loadingDashboard ? "..." : pendingPayments} icon={Clock} colorScheme="amber" />
         <StatCard title="Galleries Live" value={loadingDashboard ? "..." : uploadedGalleries} icon={ImageIcon} colorScheme="rose" />
+>>>>>>> 354f1e634ca43dd417fe79b55e09e23667655b80
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

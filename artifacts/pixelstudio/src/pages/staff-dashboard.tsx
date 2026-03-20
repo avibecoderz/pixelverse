@@ -1,10 +1,36 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
+<<<<<<< HEAD
+import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, CreditCard, ImageIcon, Clock, type LucideIcon } from "lucide-react";
+import { useClients } from "@/hooks/use-data";
+=======
 import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, DollarSign, ImageIcon, Clock } from "lucide-react";
 import { useClients, useStaffDashboard } from "@/hooks/use-data";
+>>>>>>> 354f1e634ca43dd417fe79b55e09e23667655b80
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+
+const NairaIcon = (({ className, ...props }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M7 5v14" />
+    <path d="M17 5v14" />
+    <path d="M7 7l10 10" />
+    <path d="M7 17V7h10" />
+    <path d="M5 10h14" />
+    <path d="M5 14h14" />
+  </svg>
+)) as LucideIcon;
 
 export default function StaffDashboard() {
   const { data: dashboard, isLoading: loadingDashboard } = useStaffDashboard();
@@ -48,6 +74,14 @@ export default function StaffDashboard() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
+<<<<<<< HEAD
+        <StatCard title="Total Customers" value={isLoading ? "…" : clients_.length} icon={Users} colorScheme="violet" />
+        <StatCard title="Pending Editing" value={isLoading ? "…" : pendingEditing} icon={Camera} colorScheme="amber"
+          trend={pendingEditing > 0 ? { value: pendingEditing, label: "need attention" } : undefined} />
+        <StatCard title="Uploaded Galleries" value={isLoading ? "…" : uploadedGalleries} icon={ImageIcon} colorScheme="emerald" />
+        <StatCard title="Total Amount" value={isLoading ? "…" : `₦${totalRevenue.toLocaleString()}`} icon={NairaIcon} colorScheme="blue" />
+        <StatCard title="Pending Payments" value={isLoading ? "…" : pendingPayments} icon={Clock} colorScheme="amber" />
+=======
         <StatCard title="Total Clients" value={loadingDashboard && isLoading ? "..." : totalClients} icon={Users} colorScheme="violet" />
         <StatCard
           title="Pending Editing"
@@ -59,6 +93,7 @@ export default function StaffDashboard() {
         <StatCard title="Uploaded Galleries" value={loadingDashboard && isLoading ? "..." : uploadedGalleries} icon={ImageIcon} colorScheme="emerald" />
         <StatCard title="Total Revenue" value={loadingDashboard ? "..." : `N${totalRevenue.toLocaleString()}`} icon={DollarSign} colorScheme="blue" />
         <StatCard title="Pending Payments" value={isLoading ? "..." : pendingPayments} icon={Clock} colorScheme="amber" />
+>>>>>>> 354f1e634ca43dd417fe79b55e09e23667655b80
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -126,7 +161,7 @@ export default function StaffDashboard() {
             </CardHeader>
             <CardContent className="p-4 space-y-2.5">
               {[
-                { label: "Add New Client", icon: UserPlus, href: "/staff/clients/new", variant: "default" as const },
+                { label: "Add New Customer", icon: UserPlus, href: "/staff/clients/new", variant: "default" as const },
                 { label: "Upload Photos", icon: UploadCloud, href: "/staff/clients", variant: "outline" as const },
                 { label: "View All Records", icon: Users, href: "/staff/clients", variant: "outline" as const },
               ].map(({ label, icon: Icon, href, variant }) => (

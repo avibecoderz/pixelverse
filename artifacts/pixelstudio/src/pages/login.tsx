@@ -207,6 +207,14 @@ export default function Login() {
         </div>
       </div>
 
+
+
+
+
+
+
+
+
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white relative">
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-indigo-600 lg:hidden" />
         <div className="w-full max-w-md space-y-8">
