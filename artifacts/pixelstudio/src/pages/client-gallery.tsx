@@ -2,7 +2,8 @@ import { useRoute } from "wouter";
 import { useGallery } from "@/hooks/use-data";
 import { getImageUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Camera, Download, DownloadCloud, Heart, Clock, AlertCircle } from "lucide-react";
+import { StudioLogo } from "@/components/studio-logo";
+import { Download, DownloadCloud, Heart, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ClientGallery() {
@@ -15,7 +16,7 @@ export default function ClientGallery() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="animate-pulse flex flex-col items-center gap-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
-          <Camera className="w-8 h-8 text-primary" />
+          <StudioLogo className="w-8 h-8 rounded-xl object-cover" />
         </div>
         <p className="text-muted-foreground font-medium">Preparing your beautiful gallery...</p>
       </div>
@@ -77,7 +78,7 @@ export default function ClientGallery() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 font-display text-xl font-bold">
             <div className="bg-primary p-2 rounded-lg">
-              <Camera className="w-5 h-5 text-white" />
+              <StudioLogo className="w-5 h-5 rounded-md object-cover" />
             </div>
             <span>{gallery.studioName}</span>
           </div>
@@ -107,7 +108,7 @@ export default function ClientGallery() {
           {/* Decorative Divider */}
           <div className="flex items-center justify-center gap-4 py-4">
             <div className="h-px w-16 bg-slate-300"></div>
-            <Camera className="w-5 h-5 text-slate-300" />
+            <StudioLogo className="w-5 h-5 rounded-md object-cover opacity-60" />
             <div className="h-px w-16 bg-slate-300"></div>
           </div>
 
@@ -126,7 +127,7 @@ export default function ClientGallery() {
         {gallery.photos.length === 0 && (
           <div className="text-center py-24 text-muted-foreground">
             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Camera className="w-10 h-10 text-slate-300" />
+              <StudioLogo className="w-10 h-10 rounded-full object-cover opacity-70" />
             </div>
             <p className="text-lg font-medium">No photos uploaded yet.</p>
             <p className="text-sm mt-1">Check back soon — your photographer is still working on them!</p>
@@ -178,7 +179,7 @@ export default function ClientGallery() {
         {/* Footer */}
         <div className="mt-32 pb-16 text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-50 to-slate-100 text-primary mb-6 shadow-inner border border-white">
-            <Camera className="w-8 h-8" />
+            <StudioLogo className="w-8 h-8 rounded-xl object-cover" />
           </div>
           <p className="font-display font-bold text-2xl mb-2 text-slate-900">{gallery.studioName}</p>
           <p className="text-slate-500 font-medium">Captured with passion by {gallery.photographerName}</p>

@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, UploadCloud, FileText, Copy, Check, Camera, Image as ImageIcon, Phone, DollarSign, Calendar } from "lucide-react";
+import { StudioLogo } from "@/components/studio-logo";
+import { ArrowLeft, UploadCloud, FileText, Copy, Check, Image as ImageIcon, Phone, DollarSign, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -39,7 +40,7 @@ export default function ClientDetail() {
   if (!client) {
     return (
       <div className="text-center py-24">
-        <Camera className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+        <StudioLogo className="w-12 h-12 mx-auto rounded-2xl object-cover mb-4 opacity-70" />
         <h2 className="text-xl font-bold">Client not found</h2>
         <Button variant="outline" className="mt-4" onClick={() => setLocation("/staff/clients")}>Back to Records</Button>
       </div>

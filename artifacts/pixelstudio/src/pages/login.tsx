@@ -3,8 +3,9 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StudioLogo } from "@/components/studio-logo";
 import {
-  Camera, ShieldCheck, UserCircle, CheckCircle, Eye, EyeOff,
+  ShieldCheck, UserCircle, CheckCircle, Eye, EyeOff,
   ImageIcon, CreditCard, AlertCircle, Mail, ArrowLeft, KeyRound, RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -178,7 +179,7 @@ export default function Login() {
         <div className="relative z-10 max-w-lg text-white">
           <div className="flex items-center gap-3 mb-10">
             <div className="bg-primary/20 p-3 rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.3)] border border-primary/30 backdrop-blur-sm">
-              <Camera className="w-8 h-8 text-primary-foreground" />
+              <StudioLogo className="w-8 h-8 rounded-xl object-cover" />
             </div>
             <h4 className="text-4xl font-display font-bold tracking-tight">GBSM Photography Studio</h4>
           </div>
@@ -219,7 +220,7 @@ export default function Login() {
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-indigo-600 lg:hidden" />
         <div className="w-full max-w-md space-y-8">
           <div className="flex items-center justify-center gap-2 lg:hidden">
-            <div className="bg-primary p-2 rounded-xl text-white"><Camera className="w-6 h-6" /></div>
+            <div className="bg-primary p-2 rounded-xl text-white"><StudioLogo className="w-6 h-6 rounded-lg object-cover" /></div>
             <h1 className="text-2xl font-display font-bold text-slate-900">PixelStudio</h1>
           </div>
 

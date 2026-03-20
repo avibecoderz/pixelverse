@@ -3,7 +3,8 @@ import { useRoute } from "wouter";
 import { useClient } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Download, Camera, WifiOff } from "lucide-react";
+import { StudioLogo } from "@/components/studio-logo";
+import { Printer, ArrowLeft, Download, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { GalleryQrCode } from "@/components/gallery-qr-code";
 import type { AppClient } from "@/hooks/use-data";
@@ -132,7 +133,7 @@ export default function InvoicePreview() {
               <div>
                 <div className="flex items-center gap-2.5 font-display text-2xl font-bold text-slate-900 mb-4">
                   <div className="bg-primary p-2 rounded-lg">
-                    <Camera className="w-5 h-5 text-white" />
+                    <StudioLogo className="w-5 h-5 rounded-md object-cover" />
                   </div>
                   GBSM Photography Studio
                 </div>

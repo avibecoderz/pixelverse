@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
-import { Users, Camera, UploadCloud, ArrowRight, UserPlus, FileText, DollarSign, ImageIcon, Clock } from "lucide-react";
+import { StudioLogo, StudioLogoIcon } from "@/components/studio-logo";
+import { Users, UploadCloud, ArrowRight, UserPlus, FileText, DollarSign, ImageIcon, Clock } from "lucide-react";
 import { useClients, useStaffDashboard } from "@/hooks/use-data";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ export default function StaffDashboard() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 text-white p-7 shadow-lg">
         <div className="absolute top-0 right-0 opacity-10 p-6">
-          <Camera className="w-48 h-48" />
+          <StudioLogo className="w-48 h-48 rounded-[2rem] object-cover" />
         </div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div>
@@ -56,7 +57,7 @@ export default function StaffDashboard() {
         <StatCard
           title="Pending Editing"
           value={loadingDashboard && isLoading ? "..." : pendingEditing}
-          icon={Camera}
+          icon={StudioLogoIcon}
           colorScheme="amber"
           trend={pendingEditing > 0 ? { value: pendingEditing, label: "need attention" } : undefined}
         />

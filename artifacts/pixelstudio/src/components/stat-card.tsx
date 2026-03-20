@@ -1,14 +1,14 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
 
 export type StatColorScheme = "violet" | "emerald" | "amber" | "rose" | "blue" | "default";
+type IconComponent = React.ComponentType<{ className?: string }>;
 
 interface StatCardProps {
   title: string;
   value: string | number;
-  icon: LucideIcon;
+  icon: IconComponent;
   description?: string;
   trend?: {
     value: number;
