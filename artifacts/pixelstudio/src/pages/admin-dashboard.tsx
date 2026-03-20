@@ -58,40 +58,25 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard
-          title="Total Staff"
-          value={loadingDashboard && loadingStaff ? "..." : totalStaff}
-          icon={Briefcase}
-          colorScheme="violet"
-        />
-        <StatCard
-          title="Total Clients"
-          value={loadingDashboard && loadingClients ? "..." : totalClients}
-          icon={Users}
-          colorScheme="blue"
-        />
-        <StatCard
-          title="Total Revenue"
-          value={loadingDashboard ? "..." : `NGN ${totalRevenue.toLocaleString()}`}
-          icon={NairaIcon}
-          colorScheme="emerald"
-          trend={{ value: 8, label: "this month" }}
-        />
-        <StatCard
-          title="Pending Payments"
-          value={loadingDashboard ? "..." : pendingPayments}
-          icon={Clock}
-          colorScheme="amber"
-        />
-        <StatCard
-          title="Galleries Live"
-          value={loadingDashboard ? "..." : uploadedGalleries}
-          icon={ImageIcon}
-          colorScheme="rose"
-        />
-      </div>
 
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+  <StatCard title="Total Staff" value={loadingDashboard && loadingStaff ? "..." : totalStaff} icon={Briefcase} colorScheme="violet" />
+  <StatCard title="Total Clients" value={loadingDashboard && loadingClients ? "..." : totalClients} icon={Users} colorScheme="blue" />
+  <StatCard
+    title="Total Revenue"
+    value={loadingDashboard ? "..." : `N${totalRevenue.toLocaleString()}`}
+    icon={NairaIcon}
+    colorScheme="emerald"
+    trend={{ value: 8, label: "this month" }}
+  />
+  <StatCard title="Pending Payments" value={loadingDashboard ? "..." : pendingPayments} icon={Clock} colorScheme="amber" />
+  <StatCard title="Galleries Live" value={loadingDashboard ? "..." : uploadedGalleries} icon={ImageIcon} colorScheme="rose" />
+</div>
+
+      
+
+
+  
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="col-span-2 shadow-sm border-border/40">
           <CardHeader className="flex flex-row items-center justify-between pb-4 bg-slate-50/50 border-b border-border/40">
